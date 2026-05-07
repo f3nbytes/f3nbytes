@@ -1,7 +1,8 @@
-import { Head } from '@inertiajs/react';
+import { Head, Link } from '@inertiajs/react';
 import AppLogoIcon from '@/components/app-logo-icon';
 import type { Appearance } from '@/hooks/use-appearance';
 import { useAppearance } from '@/hooks/use-appearance';
+import { projects as projectsIndex } from '@/routes';
 import { motion, useMotionValue, useSpring } from 'framer-motion';
 import type { LucideIcon } from 'lucide-react';
 import {
@@ -165,6 +166,13 @@ const teamMembers = [
         github: 'https://github.com/Fadlan079',
         portfolio: 'https://fadlan.f3bytes.my.id',
     },
+];
+
+const heroMembers = [
+    teamMembers[0],
+    teamMembers[3],
+    teamMembers[2],
+    teamMembers[1],
 ];
 
 const projects = [
@@ -865,13 +873,14 @@ export default function Welcome() {
                             </div>
 
                             <div className="flex flex-col gap-3 sm:flex-row">
-                                <a
-                                    href="#projects"
+                                <Link
+                                    href={projectsIndex()}
+                                    prefetch
                                     className="inline-flex items-center justify-center gap-2 rounded-md bg-blue-500 px-5 py-3 text-sm font-bold text-white shadow-[0_0_28px_rgba(59,130,246,0.35)] transition hover:bg-blue-400"
                                 >
                                     {text.exploreProjects}{' '}
                                     <ArrowRight className="size-4" />
-                                </a>
+                                </Link>
                                 <a
                                     href="#team"
                                     className="inline-flex items-center justify-center gap-2 rounded-md border border-slate-300/80 bg-white/70 px-5 py-3 text-sm font-bold text-slate-950 backdrop-blur transition hover:border-red-300/60 hover:bg-red-500/10 dark:border-white/15 dark:bg-white/5 dark:text-white"
@@ -922,11 +931,11 @@ export default function Welcome() {
                                             skills: 'daily' {'}'});
                                         </span>
                                         <div className="mt-2 grid grid-cols-2 gap-3 sm:grid-cols-4">
-                                            {['F', 'F', 'F', 'N'].map(
-                                                (letter, index) => (
+                                            {heroMembers.map(
+                                                (member, index) => (
                                                     <motion.div
-                                                        key={`${letter}-${index}`}
-                                                        className="flex aspect-square items-center justify-center rounded-md border border-slate-200 bg-white/70 text-3xl font-bold text-slate-950 dark:border-white/10 dark:bg-white/[0.04] dark:text-white"
+                                                        key={member.name}
+                                                        className="relative aspect-square overflow-hidden rounded-md border border-slate-200 bg-white/70 dark:border-white/10 dark:bg-white/[0.04]"
                                                         animate={{
                                                             y: [0, -8, 0],
                                                         }}
@@ -936,7 +945,14 @@ export default function Welcome() {
                                                             delay: index * 0.2,
                                                         }}
                                                     >
-                                                        {letter}
+                                                        <img
+                                                            src={member.photo}
+                                                            alt={member.name}
+                                                            className="size-full object-cover object-center"
+                                                        />
+                                                        <div className="absolute inset-x-0 bottom-0 bg-slate-950/70 px-2 py-1 text-center text-xs font-semibold text-white backdrop-blur-sm">
+                                                            {member.name}
+                                                        </div>
                                                     </motion.div>
                                                 ),
                                             )}
