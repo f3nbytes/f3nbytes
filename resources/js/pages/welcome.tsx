@@ -1,9 +1,6 @@
 import { Head, Link } from '@inertiajs/react';
-import AppLogoIcon from '@/components/app-logo-icon';
-import type { Appearance } from '@/hooks/use-appearance';
-import { useAppearance } from '@/hooks/use-appearance';
-import { projects as projectsIndex } from '@/routes';
 import { motion, useMotionValue, useSpring } from 'framer-motion';
+import LiquidGlass from 'liquid-glass-react';
 import type { LucideIcon } from 'lucide-react';
 import {
     ArrowRight,
@@ -12,10 +9,10 @@ import {
     ExternalLink,
     Github,
     Instagram,
-    Languages,
     Mail,
     Menu,
     MessageCircle,
+    Monitor,
     Moon,
     Network,
     Palette,
@@ -24,16 +21,13 @@ import {
     Sun,
     X,
 } from 'lucide-react';
-import type { ReactNode } from 'react';
-import { useEffect, useMemo, useState } from 'react';
+import type { ReactNode, RefObject } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import AppLogoIcon from '@/components/app-logo-icon';
+import { useAppearance } from '@/hooks/use-appearance';
+import { projects as projectsIndex } from '@/routes';
 
 type Language = 'en' | 'id' | 'jp';
-
-const languageOptions: { value: Language; label: string }[] = [
-    { value: 'en', label: 'EN' },
-    { value: 'id', label: 'ID' },
-    { value: 'jp', label: 'JP' },
-];
 
 const navItems = [
     { label: { en: 'About', id: 'Tentang', jp: '概要' }, href: '#about' },
@@ -41,6 +35,10 @@ const navItems = [
     {
         label: { en: 'Projects', id: 'Proyek', jp: 'プロジェクト' },
         href: '#projects',
+    },
+    {
+        label: { en: 'Game', id: 'Game', jp: 'ゲーム' },
+        href: '#game',
     },
     { label: { en: 'Stack', id: 'Teknologi', jp: '技術' }, href: '#stack' },
     { label: { en: 'Contact', id: 'Kontak', jp: '連絡' }, href: '#contact' },
@@ -263,8 +261,9 @@ const copy = {
         contact: 'Contact',
         themeLabel: 'Theme',
         languageLabel: 'Language',
-        light: 'Light',
-        dark: 'Dark',
+        light: 'Village',
+        dark: 'Dungeon',
+        system: 'System',
         eyebrow: 'Young digital developer team',
         tagline: 'Built by passion, powered by bytes.',
         mission: 'Grow together, build something bigger.',
@@ -313,6 +312,20 @@ const copy = {
             description:
                 "React, Tailwind, Vite, and Laravel form the team's core workflow for building modern digital products.",
         },
+        game: {
+            eyebrow: 'Mini Game',
+            title: 'Play the F3N story right in your browser.',
+            description:
+                'A pixel action-RPG starring all four members. Explore, dodge, and attack through 3 waves, then beat the Giant Deadline — solo, co-op, or with AI companions.',
+            features: [
+                '4-hero party: solo, co-op, or AI companions',
+                'Attack and dodge with i-frames',
+                '3 waves plus a Giant Deadline boss',
+                'Story chapters between battles',
+            ],
+            play: 'Play Now',
+            controlsHint: 'WASD + J/K · Arrows + Enter/Shift',
+        },
         contactSection: {
             eyebrow: 'Contact',
             title: 'Build, collaborate, or grow with F3N-Bytes.',
@@ -324,8 +337,9 @@ const copy = {
         contact: 'Kontak',
         themeLabel: 'Tema',
         languageLabel: 'Bahasa',
-        light: 'Terang',
-        dark: 'Gelap',
+        light: 'Desa',
+        dark: 'Dungeon',
+        system: 'Sistem',
         eyebrow: 'Tim developer digital muda',
         tagline: 'Dibangun dengan passion, digerakkan oleh bytes.',
         mission: 'Tumbuh bersama, bangun sesuatu yang lebih besar.',
@@ -374,6 +388,20 @@ const copy = {
             description:
                 'React, Tailwind, Vite, dan Laravel menjadi workflow utama tim untuk membangun produk digital modern.',
         },
+        game: {
+            eyebrow: 'Mini Game',
+            title: 'Mainkan cerita F3N langsung di browser.',
+            description:
+                'RPG pixel aksi berisi empat anggota. Jelajah, dodge, dan serang lewati 3 wave, lalu kalahkan Raja Deadline — solo, co-op, atau bareng AI companion.',
+            features: [
+                'Party 4 hero: solo, co-op, atau AI companion',
+                'Serang dan dodge dengan i-frames',
+                '3 wave plus boss Raja Deadline',
+                'Chapter cerita di tiap jeda tempur',
+            ],
+            play: 'Mainkan',
+            controlsHint: 'WASD + J/K · Panah + Enter/Shift',
+        },
         contactSection: {
             eyebrow: 'Kontak',
             title: 'Bangun, kolaborasi, atau tumbuh bersama F3N-Bytes.',
@@ -385,8 +413,9 @@ const copy = {
         contact: '連絡',
         themeLabel: 'テーマ',
         languageLabel: '言語',
-        light: 'ライト',
-        dark: 'ダーク',
+        light: '村',
+        dark: 'ダンジョン',
+        system: 'システム',
         eyebrow: '若いデジタル開発チーム',
         tagline: '情熱で作り、バイトで動かす。',
         mission: '共に成長し、より大きなものを作る。',
@@ -435,6 +464,20 @@ const copy = {
             description:
                 'React、Tailwind、Vite、Laravel が、現代的なデジタルプロダクトを作るための中心的なワークフローです。',
         },
+        game: {
+            eyebrow: 'ミニゲーム',
+            title: 'ブラウザでF3Nストーリーを遊ぼう。',
+            description:
+                '4人のメンバーが登場するピクセルアクションRPG。3つのウェーブを突破し、巨大デッドラインを倒せ。ソロ、協力、AI仲間で遊べます。',
+            features: [
+                '4人パーティ:ソロ・協力・AI仲間',
+                '無敵付きの攻撃と回避',
+                '3ウェーブ＋巨大デッドラインボス',
+                '戦闘の合間のストーリー',
+            ],
+            play: '遊ぶ',
+            controlsHint: 'WASD + J/K · 矢印 + Enter/Shift',
+        },
         contactSection: {
             eyebrow: '連絡',
             title: 'F3N-Bytes と作り、協力し、成長する。',
@@ -473,6 +516,7 @@ function useLoadingSequence(lines: string[]) {
     const [lineIndex, setLineIndex] = useState(0);
 
     useEffect(() => {
+        // eslint-disable-next-line react-hooks/set-state-in-effect
         setLineIndex(0);
 
         const lineTimer = window.setInterval(() => {
@@ -501,6 +545,7 @@ function useLanguage() {
             storedLanguage === 'id' ||
             storedLanguage === 'jp'
         ) {
+            // eslint-disable-next-line react-hooks/set-state-in-effect
             setLanguageState(storedLanguage);
             document.documentElement.lang = storedLanguage;
         }
@@ -556,24 +601,24 @@ function LoadingScreen({
 
     return (
         <motion.div
-            className="fixed inset-0 z-60 flex items-center justify-center bg-[#0b0f19]"
+            className="fixed inset-0 z-60 flex items-center justify-center bg-[#e9f3ff] dark:bg-[#0b0f19]"
             exit={{ opacity: 0 }}
             initial={{ opacity: 1 }}
             animate={{ opacity: 1 }}
         >
-            <div className="w-[min(90vw,420px)] border border-blue-400/30 bg-[#111827]/70 p-6 shadow-[0_0_60px_rgba(59,130,246,0.18)] backdrop-blur-xl">
-                <div className="mb-5 flex items-center gap-3 text-sm text-blue-200">
-                    <span className="size-2 animate-pulse bg-blue-400" />
+            <div className="glass pixel-corners-sm w-[min(90vw,420px)] p-6 dark:border dark:border-blue-400/30 dark:bg-[#111827]/70 dark:shadow-[0_0_60px_rgba(59,130,246,0.18)] dark:backdrop-blur-xl">
+                <div className="mb-5 flex items-center gap-3 font-mono text-xs text-blue-800 dark:text-blue-200">
+                    <span className="size-2 animate-pulse bg-blue-500" />
                     boot.sequence
                 </div>
-                <div className="flex flex-col gap-3 font-mono text-sm text-slate-200">
+                <div className="flex flex-col gap-3 font-mono text-sm text-slate-600 dark:text-slate-200">
                     {lines.map((line, index) => (
                         <motion.span
                             key={line}
                             className={
                                 index <= lineIndex
-                                    ? 'text-slate-100'
-                                    : 'text-slate-600'
+                                    ? 'text-slate-900 dark:text-slate-100'
+                                    : 'text-slate-400 dark:text-slate-600'
                             }
                             initial={{ opacity: 0, x: -8 }}
                             animate={{
@@ -590,6 +635,129 @@ function LoadingScreen({
     );
 }
 
+/*
+ * Liquid glass (displacement SVG) hanya dirender penuh di Chromium.
+ * Di Firefox/Safari library-nya jadi blob hitam — jadi mereka dapat
+ * fallback kaca CSS biasa. Deteksi via UA karena CSS.supports() hanya
+ * cek sintaks, bukan kemampuan render.
+ */
+function useLiquidGlassSupport(): boolean {
+    return useMemo(() => {
+        if (typeof window === 'undefined' || !navigator?.userAgent) {
+            return false;
+        }
+
+        const ua = navigator.userAgent;
+        const isFirefox = ua.includes('Firefox');
+        const isSafari = /^((?!chrome|android).)*safari/i.test(ua);
+
+        return !isFirefox && !isSafari;
+    }, []);
+}
+
+function NavGlassLink({
+    href,
+    label,
+    overLight,
+    mouseContainer,
+    active = false,
+}: {
+    href: string;
+    label: string;
+    overLight: boolean;
+    mouseContainer?: RefObject<HTMLElement | null> | null;
+    active?: boolean;
+}) {
+    const overlay = `pointer-events-none absolute inset-0 rounded-full transition-opacity duration-300 ${
+        active
+            ? 'opacity-100'
+            : 'opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 group-active:opacity-100'
+    }`;
+    const link = `relative z-10 block px-4 py-2 text-sm transition-colors duration-300 ${
+        active
+            ? 'font-semibold text-slate-950 dark:text-white'
+            : 'font-medium text-slate-600 group-hover:text-slate-950 dark:text-slate-300 dark:group-hover:text-white'
+    }`;
+
+    if (!useLiquidGlassSupport()) {
+        return (
+            <div className="group relative rounded-full">
+                <a
+                    href={href}
+                    aria-current={active ? 'location' : undefined}
+                    className={link}
+                >
+                    {label}
+                </a>
+                <div
+                    className={`${overlay} backdrop-blur-xl ${
+                        active
+                            ? 'border border-sky-300/70 bg-sky-200/50 shadow-[inset_0_2px_8px_rgba(2,6,23,0.3),inset_0_-1px_2px_rgba(255,255,255,0.5),0_0_0_1px_rgba(125,211,252,0.5)] dark:border-white/15 dark:bg-black/40 dark:shadow-[inset_0_2px_8px_rgba(0,0,0,0.7)]'
+                            : 'border border-white/90 bg-[linear-gradient(180deg,rgba(255,255,255,0.85),rgba(125,211,252,0.55))] shadow-[inset_0_-2px_4px_rgba(37,99,235,0.25),0_0_0_1px_rgba(125,211,252,0.6),0_10px_28px_rgba(37,99,235,0.35)] dark:border-white/25 dark:bg-white/15 dark:shadow-[0_0_0_1px_rgba(255,255,255,.15),0_6px_18px_rgba(0,0,0,.5)]'
+                    }`}
+                />
+            </div>
+        );
+    }
+
+    return (
+        <div className="group relative rounded-full">
+            <a
+                href={href}
+                aria-current={active ? 'location' : undefined}
+                className={link}
+            >
+                {label}
+            </a>
+            <div className={overlay}>
+                <LiquidGlass
+                    cornerRadius={999}
+                    padding="0px"
+                    displacementScale={22}
+                    blurAmount={0.1}
+                    saturation={155}
+                    aberrationIntensity={0.8}
+                    elasticity={0.08}
+                    overLight={overLight}
+                    mouseContainer={mouseContainer}
+                    className={`block size-full ${active ? 'shadow-[inset_0_2px_6px_rgba(2,6,23,0.25)]' : ''}`}
+                    style={{ width: '100%', height: '100%' }}
+                >
+                    <span className="block size-full" />
+                </LiquidGlass>
+            </div>
+        </div>
+    );
+}
+
+function useActiveSection(ids: string[]): string | null {
+    const [active, setActive] = useState<string | null>(null);
+
+    useEffect(() => {
+        const pick = (): void => {
+            const mark = window.scrollY + window.innerHeight * 0.4;
+            let current: string | null = null;
+
+            for (const id of ids) {
+                const el = document.getElementById(id);
+
+                if (el && el.offsetTop <= mark) {
+                    current = `#${id}`;
+                }
+            }
+
+            setActive(current);
+        };
+
+        pick();
+        window.addEventListener('scroll', pick, { passive: true });
+
+        return () => window.removeEventListener('scroll', pick);
+    }, [ids]);
+
+    return active;
+}
+
 function PreferenceControls({
     language,
     setLanguage,
@@ -597,61 +765,169 @@ function PreferenceControls({
     language: Language;
     setLanguage: (language: Language) => void;
 }) {
-    const { appearance, updateAppearance } = useAppearance();
-    const themeOptions: {
-        value: Appearance;
-        label: string;
-        icon: LucideIcon;
-    }[] = [
-        { value: 'light', label: copy[language].light, icon: Sun },
-        { value: 'dark', label: copy[language].dark, icon: Moon },
-    ];
+    const { appearance, resolvedAppearance, updateAppearance } =
+        useAppearance();
+    const isDark = resolvedAppearance === 'dark';
+    // Zona interaksi: gerakan mouse di sekitar switch ikut membiaskan kaca.
+    const zoneRef = useRef<HTMLDivElement | null>(null);
 
     return (
-        <div className="flex flex-wrap items-center gap-2">
-            <div
-                aria-label={copy[language].themeLabel}
-                className="inline-flex rounded-md border border-slate-300/70 bg-white/80 p-1 text-slate-700 shadow-sm backdrop-blur dark:border-white/10 dark:bg-white/5 dark:text-slate-200"
-            >
-                {themeOptions.map(({ value, label, icon: Icon }) => (
-                    <button
-                        key={value}
-                        type="button"
-                        onClick={() => updateAppearance(value)}
-                        className={`inline-flex min-h-8 items-center gap-1.5 rounded px-2.5 text-xs font-semibold transition ${
-                            appearance === value
-                                ? 'bg-slate-950 text-white shadow-sm dark:bg-white dark:text-[#0b0f19]'
-                                : 'hover:bg-slate-200/70 dark:hover:bg-white/10'
-                        }`}
-                    >
-                        <Icon className="size-3.5" />
-                        {label}
-                    </button>
-                ))}
-            </div>
+        <div ref={zoneRef} className="flex flex-wrap items-center gap-2">
+            <GlassSwitch
+                id="theme"
+                ariaLabel={copy[language].themeLabel}
+                value={appearance}
+                onChange={updateAppearance}
+                overLight={!isDark}
+                mouseContainer={zoneRef}
+                options={[
+                    {
+                        value: 'light',
+                        label: copy[language].light,
+                        icon: Sun,
+                    },
+                    {
+                        value: 'dark',
+                        label: copy[language].dark,
+                        icon: Moon,
+                    },
+                    {
+                        value: 'system',
+                        label: copy[language].system,
+                        icon: Monitor,
+                    },
+                ]}
+            />
 
-            <div
-                aria-label={copy[language].languageLabel}
-                className="inline-flex rounded-md border border-slate-300/70 bg-white/80 p-1 text-slate-700 shadow-sm backdrop-blur dark:border-white/10 dark:bg-white/5 dark:text-slate-200"
+            <GlassSwitch
+                id="language"
+                ariaLabel={copy[language].languageLabel}
+                value={language}
+                onChange={setLanguage}
+                overLight={!isDark}
+                mouseContainer={zoneRef}
+                options={[
+                    { value: 'en', label: 'EN' },
+                    { value: 'id', label: 'ID' },
+                    { value: 'jp', label: 'JP' },
+                ]}
+            />
+        </div>
+    );
+}
+
+function GlassSwitch<T extends string>({
+    id,
+    ariaLabel,
+    options,
+    value,
+    onChange,
+    overLight,
+    mouseContainer,
+}: {
+    id: string;
+    ariaLabel: string;
+    options: { value: T; label: string; icon?: LucideIcon }[];
+    value: T;
+    onChange: (value: T) => void;
+    overLight: boolean;
+    mouseContainer?: RefObject<HTMLElement | null> | null;
+}) {
+    const liquid = useLiquidGlassSupport();
+
+    const buttons = options.map(({ value: optionValue, label, icon: Icon }) => {
+        const active = optionValue === value;
+
+        return (
+            <button
+                key={optionValue}
+                type="button"
+                onClick={() => onChange(optionValue)}
+                className={`relative rounded-full px-3 transition-colors outline-none focus-visible:ring-2 focus-visible:ring-cyan-400 ${
+                    active
+                        ? 'text-slate-900 dark:text-white'
+                        : 'text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white'
+                }`}
             >
-                <span className="flex min-h-8 items-center px-2 text-slate-500 dark:text-slate-400">
-                    <Languages className="size-3.5" />
+                {active &&
+                    (liquid ? (
+                        <motion.span
+                            layoutId={`glass-switch-${id}`}
+                            className="absolute"
+                            style={{ inset: '-7px -5px' }}
+                            transition={{
+                                type: 'spring',
+                                stiffness: 380,
+                                damping: 32,
+                            }}
+                        >
+                            <LiquidGlass
+                                cornerRadius={999}
+                                padding="0px"
+                                displacementScale={34}
+                                blurAmount={0.09}
+                                saturation={160}
+                                aberrationIntensity={1.2}
+                                elasticity={0.3}
+                                overLight={overLight}
+                                mouseContainer={mouseContainer}
+                                className="block size-full"
+                                style={{ width: '100%', height: '100%' }}
+                            >
+                                <span className="block size-full" />
+                            </LiquidGlass>
+                        </motion.span>
+                    ) : (
+                        <motion.span
+                            layoutId={`glass-switch-${id}`}
+                            className="absolute rounded-full border border-white/80 bg-white/60 shadow-[inset_0_2px_4px_rgba(255,255,255,.9),inset_0_-3px_6px_rgba(15,23,42,.12),0_8px_20px_rgba(2,6,23,.25)] backdrop-blur-xl dark:border-white/20 dark:bg-white/15"
+                            style={{ inset: '-7px -5px' }}
+                            transition={{
+                                type: 'spring',
+                                stiffness: 380,
+                                damping: 32,
+                            }}
+                        ></motion.span>
+                    ))}
+                <span className="relative flex min-h-8 items-center gap-1.5 text-xs font-semibold">
+                    {Icon && <Icon className="size-3.5" />}
+                    {label}
                 </span>
-                {languageOptions.map((option) => (
-                    <button
-                        key={option.value}
-                        type="button"
-                        onClick={() => setLanguage(option.value)}
-                        className={`min-h-8 rounded px-2.5 text-xs font-semibold transition ${
-                            language === option.value
-                                ? 'bg-cyan-500 text-white shadow-sm'
-                                : 'hover:bg-slate-200/70 dark:hover:bg-white/10'
-                        }`}
-                    >
-                        {option.label}
-                    </button>
-                ))}
+            </button>
+        );
+    });
+
+    if (!liquid) {
+        return (
+            <div
+                aria-label={ariaLabel}
+                className="glass-chip relative inline-flex items-center gap-0.5 rounded-full p-1 dark:border dark:border-white/10 dark:bg-white/5"
+            >
+                {buttons}
             </div>
+        );
+    }
+
+    return (
+        <div className="relative inline-flex">
+            <LiquidGlass
+                cornerRadius={999}
+                padding="4px"
+                displacementScale={48}
+                blurAmount={0.12}
+                saturation={150}
+                aberrationIntensity={1.5}
+                elasticity={0.2}
+                overLight={overLight}
+                mouseContainer={mouseContainer}
+            >
+                <div
+                    aria-label={ariaLabel}
+                    className="relative flex items-center gap-0.5"
+                >
+                    {buttons}
+                </div>
+            </LiquidGlass>
         </div>
     );
 }
@@ -674,7 +950,7 @@ function SectionHeading({
             viewport={{ once: true, margin: '-80px' }}
             transition={{ duration: 0.65, ease: 'easeOut' }}
         >
-            <span className="border border-blue-400/30 bg-blue-400/10 px-3 py-1 text-xs font-semibold text-blue-200">
+            <span className="pixel-corners-sm bg-blue-500/15 px-4 py-2 text-xs font-semibold text-blue-800 dark:border dark:border-blue-400/30 dark:bg-blue-400/10 dark:text-blue-200">
                 {eyebrow}
             </span>
             <h2 className="text-3xl font-semibold text-slate-950 sm:text-4xl dark:text-white">
@@ -704,8 +980,131 @@ function GradientBorder({
     );
 }
 
+type TeamMember = (typeof teamMembers)[number];
+
+function MemberModal({
+    member,
+    language,
+    onClose,
+}: {
+    member: TeamMember;
+    language: Language;
+    onClose: () => void;
+}) {
+    useEffect(() => {
+        const onKey = (event: KeyboardEvent) => {
+            if (event.key === 'Escape') {
+                onClose();
+            }
+        };
+        document.body.style.overflow = 'hidden';
+        window.addEventListener('keydown', onKey);
+
+        return () => {
+            document.body.style.overflow = '';
+            window.removeEventListener('keydown', onKey);
+        };
+    }, [onClose]);
+
+    return (
+        <div
+            className="fixed inset-0 z-[70] flex items-center justify-center bg-slate-950/60 p-4 backdrop-blur-sm"
+            onClick={onClose}
+        >
+            <div
+                className="glass max-h-[90vh] w-full max-w-lg overflow-y-auto p-6 dark:border dark:border-white/10 dark:bg-[#111827]/95"
+                onClick={(event) => event.stopPropagation()}
+            >
+                <div className="flex items-start justify-between gap-4">
+                    <div className="flex items-center gap-4">
+                        <img
+                            src={member.photo}
+                            alt={member.name}
+                            className="pixel-corners-sm size-20 rounded-md border border-slate-200 object-cover object-center dark:border-white/10"
+                        />
+                        <div>
+                            <h3 className="text-2xl font-bold text-slate-950 dark:text-white">
+                                {member.name}
+                            </h3>
+                            <p className="mt-1 text-sm font-medium text-blue-700 dark:text-blue-200">
+                                {member.role[language]}
+                            </p>
+                        </div>
+                    </div>
+                    <button
+                        type="button"
+                        onClick={onClose}
+                        aria-label="Tutup"
+                        className="rounded-md border border-slate-300/80 p-2 text-slate-600 transition hover:bg-slate-100 dark:border-white/10 dark:text-slate-200 dark:hover:bg-white/10"
+                    >
+                        <X className="size-4" />
+                    </button>
+                </div>
+
+                <p className="mt-4 text-sm leading-7 text-slate-600 dark:text-slate-300">
+                    {member.description[language]}
+                </p>
+
+                <div className="mt-4 flex flex-wrap gap-2">
+                    {member.skills.map((skill) => (
+                        <span
+                            key={skill}
+                            className="pixel-corners-sm rounded-md bg-slate-900/[0.06] px-3 py-1.5 text-xs text-slate-700 dark:border dark:border-white/10 dark:bg-white/5 dark:text-slate-200"
+                        >
+                            {skill}
+                        </span>
+                    ))}
+                </div>
+
+                <div className="mt-6 border-t border-slate-200 pt-4 dark:border-white/10">
+                    <div className="mb-3 font-pixel text-[9px] tracking-wider text-slate-500 uppercase dark:text-slate-400">
+                        Karya Tim F3N
+                    </div>
+                    <div className="grid gap-2">
+                        {projects.map((project) => (
+                            <div
+                                key={project.title}
+                                className="flex items-center justify-between gap-3 rounded-md border border-slate-200/80 bg-white/60 px-3 py-2 text-sm dark:border-white/10 dark:bg-white/[0.04]"
+                            >
+                                <span className="font-semibold text-slate-800 dark:text-slate-100">
+                                    {project.title}
+                                </span>
+                                <span className="font-mono text-[11px] text-slate-500 dark:text-slate-400">
+                                    {project.signal}
+                                </span>
+                            </div>
+                        ))}
+                    </div>
+                </div>
+
+                <div className="mt-6 flex flex-wrap gap-3">
+                    <a
+                        href={member.portfolio}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="pixel-btn inline-flex items-center gap-2 rounded-md bg-blue-500 px-4 py-2 text-sm font-bold text-white hover:bg-blue-400"
+                    >
+                        Portfolio <ExternalLink className="size-4" />
+                    </a>
+                    <a
+                        href={member.github}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="pixel-btn inline-flex items-center gap-2 rounded-md bg-white/80 px-4 py-2 text-sm font-bold text-slate-950 hover:bg-red-500/10 dark:border dark:border-white/15 dark:bg-white/5 dark:text-white"
+                    >
+                        GitHub <Github className="size-4" />
+                    </a>
+                </div>
+            </div>
+        </div>
+    );
+}
+
 export default function Welcome() {
     const { language, setLanguage } = useLanguage();
+    const { resolvedAppearance } = useAppearance();
+    const navDark = resolvedAppearance === 'dark';
+    const navRef = useRef<HTMLElement | null>(null);
     const text = copy[language];
     const progress = useScrollProgress();
     const currentLoadingLines = useMemo(
@@ -714,6 +1113,16 @@ export default function Welcome() {
     );
     const { isLoading, lineIndex } = useLoadingSequence(currentLoadingLines);
     const [menuOpen, setMenuOpen] = useState(false);
+    const [activeMember, setActiveMember] = useState<TeamMember | null>(null);
+    const sectionIds = useMemo(
+        () =>
+            navItems
+                .map((item) => item.href)
+                .filter((href) => href.startsWith('#'))
+                .map((href) => href.slice(1)),
+        [],
+    );
+    const activeSection = useActiveSection(sectionIds);
     const particles = useMemo(
         () =>
             Array.from({ length: 34 }, (_, index) => ({
@@ -741,11 +1150,15 @@ export default function Welcome() {
                 style={{ width: `${progress * 100}%` }}
             />
 
-            <main className="min-h-screen scroll-smooth bg-[#f6fbff] font-sans text-slate-950 selection:bg-blue-500/20 dark:bg-[#0b0f19] dark:text-[#f9fafb] dark:selection:bg-blue-500/30">
+            <main className="min-h-screen scroll-smooth bg-[#fffdf5] font-sans text-slate-950 selection:bg-blue-500/20 dark:bg-[#0d0a1f] dark:text-[#f9fafb] dark:selection:bg-blue-500/30">
                 <div className="pointer-events-none fixed inset-0 overflow-hidden">
                     <div className="absolute inset-0 bg-[linear-gradient(120deg,rgba(14,165,233,0.18),transparent_36%,rgba(239,68,68,0.08)_68%,transparent)] dark:bg-[linear-gradient(120deg,rgba(59,130,246,0.16),transparent_36%,rgba(239,68,68,0.12)_68%,transparent)]" />
                     <div className="absolute inset-0 bg-[linear-gradient(rgba(15,23,42,0.055)_1px,transparent_1px),linear-gradient(90deg,rgba(15,23,42,0.055)_1px,transparent_1px)] bg-[size:72px_72px] dark:bg-[linear-gradient(rgba(255,255,255,0.035)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.035)_1px,transparent_1px)]" />
                     <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_0%,rgba(14,165,233,0.18),transparent_42%)] dark:bg-[radial-gradient(circle_at_50%_0%,rgba(59,130,246,0.18),transparent_42%)]" />
+                    <div className="absolute -top-32 left-[8%] size-96 rounded-full bg-amber-300/50 blur-3xl dark:bg-orange-500/20" />
+                    <div className="absolute top-[30%] -right-24 size-[28rem] rounded-full bg-sky-300/40 blur-3xl dark:bg-purple-600/20" />
+                    <div className="absolute bottom-[10%] left-[15%] size-80 rounded-full bg-green-300/40 blur-3xl dark:bg-red-600/15" />
+                    <div className="absolute inset-0 hidden bg-[radial-gradient(ellipse_at_center,transparent_55%,rgba(0,0,0,0.5)_100%)] dark:block" />
                     {particles.map((particle) => (
                         <motion.span
                             key={particle.id}
@@ -766,25 +1179,29 @@ export default function Welcome() {
                 </div>
 
                 <header className="fixed inset-x-0 top-4 z-40 px-4">
-                    <nav className="mx-auto flex max-w-7xl items-center justify-between border border-slate-200/80 bg-white/75 px-4 py-3 shadow-[0_0_40px_rgba(14,165,233,0.12)] backdrop-blur-xl dark:border-white/10 dark:bg-[#0b0f19]/70 dark:shadow-[0_0_40px_rgba(59,130,246,0.08)]">
+                    <nav
+                        ref={navRef}
+                        className="glass mx-auto flex max-w-7xl items-center justify-between px-4 py-3 dark:border dark:border-white/10 dark:bg-[#0b0f19]/70 dark:shadow-[0_0_40px_rgba(59,130,246,0.08)]"
+                    >
                         <a href="#" className="flex items-center gap-3">
-                            <span className="flex size-11 items-center justify-center rounded-md border border-cyan-300/30 bg-[#07101f] shadow-[0_0_24px_rgba(34,211,238,0.2)]">
+                            <span className="pixel-corners-sm flex size-11 items-center justify-center rounded-md border border-cyan-300/30 bg-[#07101f] shadow-[0_0_24px_rgba(34,211,238,0.2)]">
                                 <AppLogoIcon className="size-10" />
                             </span>
-                            <span className="text-sm font-semibold text-slate-950 dark:text-white">
+                            <span className="font-pixel text-[11px] text-slate-950 dark:text-white">
                                 F3N-Bytes
                             </span>
                         </a>
 
-                        <div className="hidden items-center gap-7 lg:flex">
+                        <div className="hidden items-center gap-2 lg:flex">
                             {navItems.map((item) => (
-                                <a
+                                <NavGlassLink
                                     key={item.href}
                                     href={item.href}
-                                    className="text-sm text-slate-600 transition hover:text-slate-950 dark:text-slate-300 dark:hover:text-white"
-                                >
-                                    {item.label[language]}
-                                </a>
+                                    label={item.label[language]}
+                                    overLight={!navDark}
+                                    mouseContainer={navRef}
+                                    active={activeSection === item.href}
+                                />
                             ))}
                         </div>
 
@@ -797,14 +1214,14 @@ export default function Welcome() {
 
                         <a
                             href="#contact"
-                            className="hidden items-center gap-2 rounded-md border border-red-400/40 bg-red-500/10 px-4 py-2 text-sm font-semibold text-red-600 transition hover:border-red-300 hover:bg-red-500/20 lg:flex dark:text-red-100"
+                            className="pixel-btn hidden items-center gap-2 bg-red-500/15 px-4 py-2 text-sm font-bold text-red-700 lg:flex dark:border dark:border-red-400/40 dark:bg-red-500/10 dark:text-red-100"
                         >
                             {text.contact} <ArrowRight className="size-4" />
                         </a>
 
                         <button
                             type="button"
-                            className="rounded-md border border-slate-300/80 p-2 text-slate-900 md:hidden dark:border-white/10 dark:text-white"
+                            className="pixel-corners-sm rounded-md border border-slate-300/80 bg-white/80 p-2 text-slate-900 md:hidden dark:border-white/10 dark:text-white"
                             onClick={() => setMenuOpen((open) => !open)}
                             aria-label="Toggle navigation"
                         >
@@ -818,7 +1235,7 @@ export default function Welcome() {
 
                     {menuOpen && (
                         <motion.div
-                            className="mx-auto mt-2 flex max-w-7xl flex-col gap-2 border border-slate-200/80 bg-white/95 p-3 backdrop-blur-xl md:hidden dark:border-white/10 dark:bg-[#111827]/95"
+                            className="glass mx-auto mt-2 flex max-w-7xl flex-col gap-2 p-3 md:hidden dark:border dark:border-white/10 dark:bg-[#111827]/95"
                             initial={{ opacity: 0, y: -8 }}
                             animate={{ opacity: 1, y: 0 }}
                         >
@@ -826,7 +1243,16 @@ export default function Welcome() {
                                 <a
                                     key={item.href}
                                     href={item.href}
-                                    className="rounded-md px-3 py-2 text-sm text-slate-700 hover:bg-slate-100 dark:text-slate-200 dark:hover:bg-white/5"
+                                    aria-current={
+                                        activeSection === item.href
+                                            ? 'location'
+                                            : undefined
+                                    }
+                                    className={`rounded-md px-3 py-2 text-sm transition ${
+                                        activeSection === item.href
+                                            ? 'bg-blue-500/15 font-semibold text-blue-800 dark:bg-blue-400/15 dark:text-blue-100'
+                                            : 'text-slate-700 hover:bg-slate-100 dark:text-slate-200 dark:hover:bg-white/5'
+                                    }`}
                                     onClick={() => setMenuOpen(false)}
                                 >
                                     {item.label[language]}
@@ -854,7 +1280,7 @@ export default function Welcome() {
                                 delay: 0.15,
                             }}
                         >
-                            <div className="flex w-fit items-center gap-2 border border-blue-400/30 bg-blue-400/10 px-3 py-2 text-sm text-blue-700 dark:text-blue-100">
+                            <div className="pixel-corners-sm flex w-fit items-center gap-2 bg-blue-500/15 px-4 py-2.5 text-sm font-semibold text-blue-800 dark:border dark:border-blue-400/30 dark:bg-blue-400/10 dark:text-blue-100">
                                 <Sparkles className="size-4" />
                                 {text.eyebrow}
                             </div>
@@ -863,11 +1289,15 @@ export default function Welcome() {
                                 <AppLogoIcon className="h-28 w-44 drop-shadow-[0_0_32px_rgba(34,211,238,0.32)] sm:h-32 sm:w-56" />
                                 <h1 className="max-w-4xl text-5xl leading-none font-bold text-slate-950 sm:text-7xl lg:text-8xl dark:text-white">
                                     F3N-Bytes
+                                    <span
+                                        aria-hidden="true"
+                                        className="ml-3 inline-block size-5 animate-pulse bg-blue-500 sm:size-7 lg:size-9 dark:bg-cyan-300"
+                                    />
                                 </h1>
                                 <p className="max-w-2xl text-xl leading-8 text-slate-700 sm:text-2xl dark:text-slate-200">
                                     {text.tagline}
                                 </p>
-                                <p className="max-w-2xl border-l-2 border-red-400 pl-5 text-lg font-medium text-red-700 dark:text-red-100">
+                                <p className="max-w-2xl border-l-4 border-red-500 bg-red-500/5 py-2 pl-5 text-lg font-medium text-red-700 dark:border-red-400 dark:bg-transparent dark:text-red-100">
                                     {text.mission}
                                 </p>
                             </div>
@@ -876,14 +1306,14 @@ export default function Welcome() {
                                 <Link
                                     href={projectsIndex()}
                                     prefetch
-                                    className="inline-flex items-center justify-center gap-2 rounded-md bg-blue-500 px-5 py-3 text-sm font-bold text-white shadow-[0_0_28px_rgba(59,130,246,0.35)] transition hover:bg-blue-400"
+                                    className="pixel-btn inline-flex items-center justify-center gap-2 rounded-md bg-blue-500 px-5 py-3 text-sm font-bold text-white hover:bg-blue-400"
                                 >
                                     {text.exploreProjects}{' '}
                                     <ArrowRight className="size-4" />
                                 </Link>
                                 <a
                                     href="#team"
-                                    className="inline-flex items-center justify-center gap-2 rounded-md border border-slate-300/80 bg-white/70 px-5 py-3 text-sm font-bold text-slate-950 backdrop-blur transition hover:border-red-300/60 hover:bg-red-500/10 dark:border-white/15 dark:bg-white/5 dark:text-white"
+                                    className="pixel-btn inline-flex items-center justify-center gap-2 rounded-md bg-white/80 px-5 py-3 text-sm font-bold text-slate-950 hover:bg-red-500/10 dark:border dark:border-white/15 dark:bg-white/5 dark:text-white"
                                 >
                                     {text.meetTeam}
                                 </a>
@@ -901,12 +1331,12 @@ export default function Welcome() {
                             }}
                         >
                             <GradientBorder>
-                                <div className="relative overflow-hidden rounded-md bg-white/85 p-5 shadow-2xl backdrop-blur-xl dark:bg-[#111827]/80">
+                                <div className="relative overflow-hidden rounded-md border border-slate-200 bg-white p-5 shadow-xl dark:border-slate-800 dark:bg-[#0d1526] dark:shadow-2xl">
                                     <div className="mb-5 flex items-center justify-between border-b border-slate-200 pb-4 dark:border-white/10">
                                         <div className="flex gap-2">
-                                            <span className="size-3 rounded-full bg-red-400" />
-                                            <span className="size-3 rounded-full bg-blue-400" />
-                                            <span className="size-3 rounded-full bg-slate-400" />
+                                            <span className="pixel-dot size-3 bg-red-400" />
+                                            <span className="pixel-dot size-3 bg-blue-400" />
+                                            <span className="pixel-dot size-3 bg-slate-400" />
                                         </div>
                                         <span className="font-mono text-xs text-slate-500 dark:text-slate-400">
                                             team.kernel.ts
@@ -914,14 +1344,14 @@ export default function Welcome() {
                                     </div>
                                     <div className="grid gap-4 font-mono text-sm text-slate-700 dark:text-slate-200">
                                         <span>
-                                            <span className="text-blue-300">
+                                            <span className="text-blue-700 dark:text-blue-300">
                                                 const
                                             </span>{' '}
                                             team = ['Fahri', 'Fadlan', 'Farrel',
                                             'Nathan'];
                                         </span>
                                         <span>
-                                            <span className="text-red-300">
+                                            <span className="text-red-600 dark:text-red-300">
                                                 mission
                                             </span>
                                             .push('build digital experiences');
@@ -935,7 +1365,7 @@ export default function Welcome() {
                                                 (member, index) => (
                                                     <motion.div
                                                         key={member.name}
-                                                        className="relative aspect-square overflow-hidden rounded-md border border-slate-200 bg-white/70 dark:border-white/10 dark:bg-white/[0.04]"
+                                                        className="pixel-corners-sm relative aspect-square overflow-hidden rounded-md border border-slate-200 bg-white/70 dark:border-white/10 dark:bg-white/[0.04]"
                                                         animate={{
                                                             y: [0, -8, 0],
                                                         }}
@@ -977,7 +1407,7 @@ export default function Welcome() {
                                 ([title, description], index) => (
                                     <motion.div
                                         key={title}
-                                        className="rounded-md border border-slate-200/80 bg-white/75 p-6 backdrop-blur-xl transition hover:border-blue-300/60 hover:bg-white dark:border-white/10 dark:bg-white/[0.045] dark:hover:border-blue-300/40 dark:hover:bg-white/[0.07]"
+                                        className="glass glass-lift rounded-md p-6 dark:border dark:border-white/10 dark:bg-white/[0.045] dark:hover:border-blue-300/40 dark:hover:bg-white/[0.07]"
                                         variants={reveal}
                                         initial="hidden"
                                         whileInView="visible"
@@ -990,6 +1420,9 @@ export default function Welcome() {
                                             delay: index * 0.08,
                                         }}
                                     >
+                                        <div className="mb-4 font-pixel text-[10px] text-blue-600 dark:text-blue-300">
+                                            0{index + 1}
+                                        </div>
                                         <h3 className="mb-3 text-xl font-semibold text-slate-950 dark:text-white">
                                             {title}
                                         </h3>
@@ -1005,7 +1438,7 @@ export default function Welcome() {
                             {targetItems[language].map((item, index) => (
                                 <motion.div
                                     key={item}
-                                    className="rounded-md border border-blue-400/20 bg-white/80 px-4 py-4 text-sm font-semibold text-slate-800 shadow-[0_0_24px_rgba(59,130,246,0.08)] backdrop-blur dark:bg-[#111827]/60 dark:text-slate-100"
+                                    className="pixel-corners-sm rounded-md border border-blue-400/20 bg-white/80 px-4 py-4 text-sm font-semibold text-slate-800 shadow-[0_0_24px_rgba(59,130,246,0.08)] backdrop-blur dark:bg-[#111827]/60 dark:text-slate-100"
                                     initial={{ opacity: 0, y: 20 }}
                                     whileInView={{ opacity: 1, y: 0 }}
                                     viewport={{ once: true }}
@@ -1034,7 +1467,7 @@ export default function Welcome() {
                                 return (
                                     <motion.article
                                         key={member.name}
-                                        className="group rounded-md border border-slate-200/80 bg-white/75 p-5 backdrop-blur-xl transition hover:-translate-y-1 hover:border-blue-300/60 hover:bg-white dark:border-white/10 dark:bg-white/[0.045] dark:hover:border-blue-300/40 dark:hover:bg-white/[0.07]"
+                                        className="glass glass-lift group cursor-pointer rounded-md p-5 dark:border dark:border-white/10 dark:bg-white/[0.045] dark:hover:border-blue-300/40 dark:hover:bg-white/[0.07]"
                                         initial={{ opacity: 0, y: 28 }}
                                         whileInView={{ opacity: 1, y: 0 }}
                                         viewport={{
@@ -1045,6 +1478,7 @@ export default function Welcome() {
                                             duration: 0.55,
                                             delay: index * 0.08,
                                         }}
+                                        onClick={() => setActiveMember(member)}
                                     >
                                         <div
                                             className={`mb-5 flex aspect-square items-center justify-center rounded-md bg-gradient-to-br ${member.accent} p-px`}
@@ -1069,7 +1503,7 @@ export default function Welcome() {
                                             {member.skills.map((skill) => (
                                                 <span
                                                     key={skill}
-                                                    className="rounded-md border border-slate-200 bg-white/70 px-3 py-1 text-xs text-slate-700 dark:border-white/10 dark:bg-white/5 dark:text-slate-200"
+                                                    className="pixel-corners-sm rounded-md bg-slate-900/[0.06] px-3 py-1.5 text-xs text-slate-700 dark:border dark:border-white/10 dark:bg-white/5 dark:text-slate-200"
                                                 >
                                                     {skill}
                                                 </span>
@@ -1094,6 +1528,16 @@ export default function Welcome() {
                                             >
                                                 <Github className="size-4" />
                                             </a>
+                                            <button
+                                                type="button"
+                                                onClick={() =>
+                                                    setActiveMember(member)
+                                                }
+                                                className="ml-auto inline-flex items-center gap-1 text-xs font-bold text-blue-700 transition hover:text-blue-500 dark:text-blue-200 dark:hover:text-blue-100"
+                                            >
+                                                Profil{' '}
+                                                <ArrowRight className="size-3.5" />
+                                            </button>
                                         </div>
                                     </motion.article>
                                 );
@@ -1114,7 +1558,7 @@ export default function Welcome() {
                             {projects.map((project, index) => (
                                 <motion.article
                                     key={project.title}
-                                    className="group overflow-hidden rounded-md border border-slate-200/80 bg-white/80 backdrop-blur-xl transition hover:border-red-300/60 dark:border-white/10 dark:bg-[#111827]/70 dark:hover:border-red-300/40"
+                                    className="glass glass-lift group overflow-hidden rounded-md transition dark:border dark:border-white/10 dark:bg-[#111827]/70 dark:hover:border-red-300/40"
                                     initial={{ opacity: 0, y: 28 }}
                                     whileInView={{ opacity: 1, y: 0 }}
                                     viewport={{ once: true, margin: '-80px' }}
@@ -1157,7 +1601,7 @@ export default function Welcome() {
                                                 (tech) => (
                                                     <span
                                                         key={tech}
-                                                        className="rounded-md border border-blue-300/30 bg-blue-400/10 px-3 py-1 text-xs font-semibold text-blue-700 dark:border-blue-300/20 dark:text-blue-100"
+                                                        className="pixel-corners-sm rounded-md bg-blue-500/15 px-3 py-1.5 text-xs font-semibold text-blue-800 dark:border dark:border-blue-300/20 dark:bg-blue-400/10 dark:text-blue-100"
                                                     >
                                                         {tech}
                                                     </span>
@@ -1167,14 +1611,14 @@ export default function Welcome() {
                                         <div className="mt-6 flex flex-wrap gap-3">
                                             <a
                                                 href={`#demo-${project.title.toLowerCase().replaceAll(' ', '-')}`}
-                                                className="inline-flex items-center gap-2 rounded-md bg-slate-950 px-4 py-2 text-sm font-bold text-white transition hover:bg-slate-800 dark:bg-white dark:text-[#0b0f19] dark:hover:bg-blue-100"
+                                                className="pixel-btn inline-flex items-center gap-2 rounded-md bg-slate-950 px-4 py-2 text-sm font-bold text-white hover:bg-slate-800 dark:bg-white dark:text-[#0b0f19] dark:hover:bg-blue-100"
                                             >
                                                 {text.demo}{' '}
                                                 <ExternalLink className="size-4" />
                                             </a>
                                             <a
                                                 href={`#source-${project.title.toLowerCase().replaceAll(' ', '-')}`}
-                                                className="inline-flex items-center gap-2 rounded-md border border-slate-300 px-4 py-2 text-sm font-bold text-slate-950 transition hover:border-red-300 hover:bg-red-500/10 dark:border-white/15 dark:text-white"
+                                                className="pixel-btn inline-flex items-center gap-2 rounded-md bg-white/80 px-4 py-2 text-sm font-bold text-slate-950 hover:bg-red-500/10 dark:border dark:border-white/15 dark:bg-transparent dark:text-white"
                                             >
                                                 {text.source}{' '}
                                                 <Github className="size-4" />
@@ -1184,6 +1628,95 @@ export default function Welcome() {
                                 </motion.article>
                             ))}
                         </div>
+                    </div>
+                </section>
+
+                <section id="game" className="relative px-4 py-24">
+                    <div className="mx-auto flex max-w-7xl flex-col gap-12">
+                        <SectionHeading
+                            eyebrow={text.game.eyebrow}
+                            title={text.game.title}
+                            description={text.game.description}
+                        />
+
+                        <GradientBorder>
+                            <div className="glass grid items-center gap-8 rounded-md p-6 sm:p-8 lg:grid-cols-[1.1fr_0.9fr] dark:bg-[#111827]/85">
+                                <div className="grid gap-3">
+                                    {text.game.features.map(
+                                        (feature, index) => (
+                                            <motion.div
+                                                key={feature}
+                                                className="flex items-center gap-3 rounded-md border border-slate-200/80 bg-white/70 px-4 py-3 text-sm font-semibold text-slate-800 backdrop-blur dark:border-white/10 dark:bg-white/[0.04] dark:text-slate-100"
+                                                initial={{ opacity: 0, x: -20 }}
+                                                whileInView={{
+                                                    opacity: 1,
+                                                    x: 0,
+                                                }}
+                                                viewport={{ once: true }}
+                                                transition={{
+                                                    duration: 0.45,
+                                                    delay: index * 0.06,
+                                                }}
+                                            >
+                                                <span className="font-pixel text-[10px] text-blue-600 dark:text-blue-300">
+                                                    0{index + 1}
+                                                </span>
+                                                {feature}
+                                            </motion.div>
+                                        ),
+                                    )}
+                                    <div className="mt-2 flex items-center gap-2 px-1">
+                                        {[
+                                            {
+                                                name: 'Fahri',
+                                                dot: 'bg-cyan-400',
+                                            },
+                                            {
+                                                name: 'Fadlan',
+                                                dot: 'bg-indigo-400',
+                                            },
+                                            {
+                                                name: 'Farrel',
+                                                dot: 'bg-rose-400',
+                                            },
+                                            {
+                                                name: 'Nathan',
+                                                dot: 'bg-amber-400',
+                                            },
+                                        ].map((hero) => (
+                                            <span
+                                                key={hero.name}
+                                                className="inline-flex items-center gap-1.5 rounded-full border border-slate-200 bg-white/70 px-3 py-1 text-xs font-semibold text-slate-700 dark:border-white/10 dark:bg-white/5 dark:text-slate-200"
+                                            >
+                                                <span
+                                                    className={`size-2 rounded-full ${hero.dot}`}
+                                                />
+                                                {hero.name}
+                                            </span>
+                                        ))}
+                                    </div>
+                                </div>
+
+                                <div className="flex flex-col items-center gap-4 rounded-md border border-slate-200 bg-white/70 p-8 text-center backdrop-blur dark:border-white/10 dark:bg-white/[0.04]">
+                                    <span className="font-pixel text-2xl text-slate-950 dark:text-white">
+                                        F3N
+                                    </span>
+                                    <span className="font-pixel text-[10px] tracking-wider text-slate-500 dark:text-slate-400">
+                                        STORY · PIXEL RPG
+                                    </span>
+                                    <Link
+                                        href="/game"
+                                        className="pixel-btn inline-flex items-center justify-center gap-2 rounded-md bg-blue-500 px-6 py-3 text-sm font-bold text-white hover:bg-blue-400"
+                                    >
+                                        {text.game.play}{' '}
+                                        <ArrowRight className="size-4" />
+                                    </Link>
+                                    <span className="font-mono text-[11px] text-slate-500 dark:text-slate-400">
+                                        {text.game.controlsHint}
+                                    </span>
+                                </div>
+                            </div>
+                        </GradientBorder>
                     </div>
                 </section>
 
@@ -1202,7 +1735,7 @@ export default function Welcome() {
                                 return (
                                     <motion.div
                                         key={tech.name}
-                                        className="group flex min-h-36 flex-col items-center justify-center gap-4 rounded-md border border-slate-200/80 bg-white/75 p-5 text-center backdrop-blur transition hover:border-blue-300/60 hover:bg-blue-400/10 dark:border-white/10 dark:bg-white/[0.045] dark:hover:border-blue-300/40"
+                                        className="glass group flex min-h-36 flex-col items-center justify-center gap-4 rounded-md p-5 text-center dark:border dark:border-white/10 dark:bg-white/[0.045] dark:hover:border-blue-300/40"
                                         animate={{ y: [0, -6, 0] }}
                                         transition={{
                                             duration: 3.5,
@@ -1224,7 +1757,7 @@ export default function Welcome() {
                             {stats.map((stat, index) => (
                                 <motion.div
                                     key={stat.label[language]}
-                                    className="rounded-md border border-slate-200/80 bg-white/80 p-6 text-center backdrop-blur dark:border-white/10 dark:bg-[#111827]/70"
+                                    className="glass rounded-md p-6 text-center dark:border dark:border-white/10 dark:bg-[#111827]/70"
                                     initial={{ opacity: 0, y: 18 }}
                                     whileInView={{ opacity: 1, y: 0 }}
                                     viewport={{ once: true }}
@@ -1234,7 +1767,7 @@ export default function Welcome() {
                                     }}
                                 >
                                     <motion.div
-                                        className="text-4xl font-bold text-slate-950 dark:text-white"
+                                        className="font-pixel text-2xl text-slate-950 sm:text-3xl dark:text-white"
                                         initial={{ scale: 0.85 }}
                                         whileInView={{ scale: 1 }}
                                         viewport={{ once: true }}
@@ -1264,7 +1797,7 @@ export default function Welcome() {
                             viewport={{ once: true, margin: '-80px' }}
                             transition={{ duration: 0.65 }}
                         >
-                            <span className="w-fit border border-red-400/30 bg-red-400/10 px-3 py-1 text-xs font-semibold text-red-700 dark:text-red-100">
+                            <span className="pixel-corners-sm w-fit bg-red-500/15 px-4 py-2 text-xs font-semibold text-red-700 dark:border dark:border-red-400/30 dark:bg-red-400/10 dark:text-red-100">
                                 {text.contactSection.eyebrow}
                             </span>
                             <h2 className="text-3xl font-semibold text-slate-950 sm:text-4xl dark:text-white">
@@ -1276,7 +1809,7 @@ export default function Welcome() {
                         </motion.div>
 
                         <GradientBorder>
-                            <div className="grid gap-4 rounded-md bg-white/85 p-5 backdrop-blur-xl sm:grid-cols-2 dark:bg-[#111827]/85">
+                            <div className="glass grid gap-4 rounded-md p-5 sm:grid-cols-2 dark:bg-[#111827]/85">
                                 {contactItems.map((item) => {
                                     const Icon = item.icon;
 
@@ -1284,7 +1817,7 @@ export default function Welcome() {
                                         <a
                                             key={item.label}
                                             href={`#${item.label.toLowerCase()}`}
-                                            className="group rounded-md border border-slate-200 bg-white/70 p-5 transition hover:border-blue-300/60 hover:bg-white dark:border-white/10 dark:bg-white/[0.04] dark:hover:border-blue-300/40 dark:hover:bg-white/[0.07]"
+                                            className="pixel-corners-sm group rounded-md border border-slate-200 bg-white/70 p-5 transition hover:border-blue-300/60 hover:bg-white dark:border-white/10 dark:bg-white/[0.04] dark:hover:border-blue-300/40 dark:hover:bg-white/[0.07]"
                                         >
                                             <Icon className="mb-5 size-7 text-blue-600 transition group-hover:text-red-500 dark:text-blue-200 dark:group-hover:text-red-200" />
                                             <div className="text-sm font-semibold text-slate-500 dark:text-slate-400">
@@ -1309,6 +1842,13 @@ export default function Welcome() {
                         </span>
                     </div>
                 </footer>
+                {activeMember && (
+                    <MemberModal
+                        member={activeMember}
+                        language={language}
+                        onClose={() => setActiveMember(null)}
+                    />
+                )}
             </main>
         </>
     );

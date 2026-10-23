@@ -1,4 +1,5 @@
 import { createInertiaApp } from '@inertiajs/react';
+import PageTransition from '@/components/page-transition';
 import { Toaster } from '@/components/ui/sonner';
 import { TooltipProvider } from '@/components/ui/tooltip';
 import { initializeTheme } from '@/hooks/use-appearance';
@@ -13,6 +14,8 @@ createInertiaApp({
     layout: (name) => {
         switch (true) {
             case name === 'welcome':
+            case name === 'game':
+            case name === 'projects':
                 return null;
             case name.startsWith('auth/'):
                 return AuthLayout;
@@ -27,12 +30,13 @@ createInertiaApp({
         return (
             <TooltipProvider delayDuration={0}>
                 {app}
+                <PageTransition />
                 <Toaster />
             </TooltipProvider>
         );
     },
     progress: {
-        color: '#4B5563',
+        color: '#22d3ee',
     },
 });
 

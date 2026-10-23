@@ -15,6 +15,9 @@ export default defineConfig({
                 bunny('Poppins', {
                     weights: [400, 500, 600, 700],
                 }),
+                bunny('Press Start 2P', {
+                    weights: [400],
+                }),
             ],
         }),
         inertia(),

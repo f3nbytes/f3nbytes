@@ -39,6 +39,7 @@ export default function DeleteUser() {
                         <Button
                             variant="destructive"
                             data-test="delete-user-button"
+                            className="pixel-btn"
                         >
                             Delete account
                         </Button>
@@ -88,6 +89,7 @@ export default function DeleteUser() {
                                         <DialogClose asChild>
                                             <Button
                                                 variant="secondary"
+                                                className="btn-glass"
                                                 onClick={() =>
                                                     resetAndClearErrors()
                                                 }
@@ -99,6 +101,7 @@ export default function DeleteUser() {
                                         <Button
                                             variant="destructive"
                                             disabled={processing}
+                                            className="pixel-btn"
                                             asChild
                                         >
                                             <button

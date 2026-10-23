@@ -12,6 +12,10 @@
         'Poppins', ui-sans-serif, system-ui, sans-serif, 'Apple Color Emoji',
         'Segoe UI Emoji', 'Segoe UI Symbol', 'Noto Color Emoji';
 
+    --font-pixel:
+        'Press Start 2P', ui-monospace, SFMono-Regular, Menlo, Consolas,
+        'Liberation Mono', monospace;
+
     --radius-lg: var(--radius);
     --radius-md: calc(var(--radius) - 2px);
     --radius-sm: calc(var(--radius) - 4px);
@@ -61,74 +65,76 @@
 }
 
 :root {
-    --background: oklch(1 0 0);
-    --foreground: oklch(0.145 0 0);
+    /* Desa siang: kertas hangat, sungai biru, daun, matahari. */
+    --background: oklch(0.99 0.008 95);
+    --foreground: oklch(0.2 0.02 60);
     --card: oklch(1 0 0);
-    --card-foreground: oklch(0.145 0 0);
+    --card-foreground: oklch(0.2 0.02 60);
     --popover: oklch(1 0 0);
-    --popover-foreground: oklch(0.145 0 0);
-    --primary: oklch(0.205 0 0);
-    --primary-foreground: oklch(0.985 0 0);
-    --secondary: oklch(0.97 0 0);
-    --secondary-foreground: oklch(0.205 0 0);
-    --muted: oklch(0.97 0 0);
-    --muted-foreground: oklch(0.556 0 0);
-    --accent: oklch(0.97 0 0);
-    --accent-foreground: oklch(0.205 0 0);
+    --popover-foreground: oklch(0.2 0.02 60);
+    --primary: oklch(0.55 0.19 250);
+    --primary-foreground: oklch(1 0 0);
+    --secondary: oklch(0.94 0.03 150);
+    --secondary-foreground: oklch(0.3 0.08 160);
+    --muted: oklch(0.95 0.02 90);
+    --muted-foreground: oklch(0.5 0.03 85);
+    --accent: oklch(0.92 0.06 95);
+    --accent-foreground: oklch(0.35 0.08 70);
     --destructive: oklch(0.577 0.245 27.325);
     --destructive-foreground: oklch(0.577 0.245 27.325);
-    --border: oklch(0.922 0 0);
-    --input: oklch(0.922 0 0);
-    --ring: oklch(0.87 0 0);
+    --border: oklch(0.88 0.015 90);
+    --input: oklch(0.88 0.015 90);
+    --ring: oklch(0.6 0.16 250);
     --chart-1: oklch(0.646 0.222 41.116);
     --chart-2: oklch(0.6 0.118 184.704);
     --chart-3: oklch(0.398 0.07 227.392);
     --chart-4: oklch(0.828 0.189 84.429);
     --chart-5: oklch(0.769 0.188 70.08);
     --radius: 0.625rem;
-    --sidebar: oklch(0.985 0 0);
-    --sidebar-foreground: oklch(0.145 0 0);
-    --sidebar-primary: oklch(0.205 0 0);
-    --sidebar-primary-foreground: oklch(0.985 0 0);
-    --sidebar-accent: oklch(0.97 0 0);
-    --sidebar-accent-foreground: oklch(0.205 0 0);
-    --sidebar-border: oklch(0.922 0 0);
-    --sidebar-ring: oklch(0.87 0 0);
+    --sidebar: oklch(0.98 0.01 95);
+    --sidebar-foreground: oklch(0.2 0.02 60);
+    --sidebar-primary: oklch(0.55 0.19 250);
+    --sidebar-primary-foreground: oklch(1 0 0);
+    --sidebar-accent: oklch(0.92 0.06 95);
+    --sidebar-accent-foreground: oklch(0.35 0.08 70);
+    --sidebar-border: oklch(0.88 0.015 90);
+    --sidebar-ring: oklch(0.6 0.16 250);
 }
 
 .dark {
-    --background: oklch(0.145 0 0);
-    --foreground: oklch(0.985 0 0);
-    --card: oklch(0.145 0 0);
-    --card-foreground: oklch(0.985 0 0);
-    --popover: oklch(0.145 0 0);
-    --popover-foreground: oklch(0.985 0 0);
-    --primary: oklch(0.985 0 0);
-    --primary-foreground: oklch(0.205 0 0);
-    --secondary: oklch(0.269 0 0);
-    --secondary-foreground: oklch(0.985 0 0);
-    --muted: oklch(0.269 0 0);
-    --muted-foreground: oklch(0.708 0 0);
-    --accent: oklch(0.269 0 0);
-    --accent-foreground: oklch(0.985 0 0);
-    --destructive: oklch(0.396 0.141 25.723);
-    --destructive-foreground: oklch(0.637 0.237 25.331);
-    --border: oklch(0.269 0 0);
-    --input: oklch(0.269 0 0);
-    --ring: oklch(0.439 0 0);
+    /* Dungeon: batu ungu arang, perkamen obor, amber api, bara merah. */
+    --background: oklch(0.16 0.02 280);
+    --foreground: oklch(0.93 0.02 90);
+    --card: oklch(0.2 0.025 280);
+    --card-foreground: oklch(0.93 0.02 90);
+    --popover: oklch(0.2 0.025 280);
+    --popover-foreground: oklch(0.93 0.02 90);
+    --primary: oklch(0.72 0.17 70);
+    --primary-foreground: oklch(0.15 0.02 60);
+    --secondary: oklch(0.25 0.04 285);
+    --secondary-foreground: oklch(0.93 0.02 90);
+    --muted: oklch(0.23 0.03 282);
+    --muted-foreground: oklch(0.68 0.03 290);
+    --accent: oklch(0.3 0.08 40);
+    --accent-foreground: oklch(0.85 0.12 80);
+    --destructive: oklch(0.55 0.22 25);
+    --destructive-foreground: oklch(0.95 0.02 25);
+    --border: oklch(0.28 0.03 285);
+    --input: oklch(0.28 0.03 285);
+    --ring: oklch(0.7 0.15 75);
     --chart-1: oklch(0.488 0.243 264.376);
     --chart-2: oklch(0.696 0.17 162.48);
     --chart-3: oklch(0.769 0.188 70.08);
     --chart-4: oklch(0.627 0.265 303.9);
     --chart-5: oklch(0.645 0.246 16.439);
-    --sidebar: oklch(0.205 0 0);
-    --sidebar-foreground: oklch(0.985 0 0);
-    --sidebar-primary: oklch(0.985 0 0);
-    --sidebar-primary-foreground: oklch(0.985 0 0);
-    --sidebar-accent: oklch(0.269 0 0);
-    --sidebar-accent-foreground: oklch(0.985 0 0);
-    --sidebar-border: oklch(0.269 0 0);
-    --sidebar-ring: oklch(0.439 0 0);
+    --sidebar: oklch(0.18 0.025 282);
+    --sidebar-foreground: oklch(0.93 0.02 90);
+    --sidebar-primary: oklch(0.72 0.17 70);
+    --sidebar-primary-foreground: oklch(0.15 0.02 60);
+    --sidebar-accent: oklch(0.3 0.08 40);
+    --sidebar-accent-foreground: oklch(0.85 0.12 80);
+    --sidebar-border: oklch(0.28 0.03 285);
+    --sidebar-ring: oklch(0.7 0.15 75);
 }
 
 @layer base {
@@ -139,4 +145,185 @@
     body {
         @apply bg-background text-foreground;
     }
+}
+
+/*
+ * Pixel + Liquid Glass theme — light mode only.
+ * Every rule is scoped under `html:not(.dark)` so dark mode keeps its
+ * current look untouched. Specificity (0,2,1) intentionally beats plain
+ * Tailwind utilities so these classes win in light mode.
+ */
+html:not(.dark) .glass {
+    position: relative;
+    background: linear-gradient(
+        135deg,
+        rgba(255, 255, 255, 0.62) 0%,
+        rgba(255, 255, 255, 0.36) 42%,
+        rgba(147, 197, 253, 0.5) 100%
+    );
+    -webkit-backdrop-filter: blur(30px) saturate(2.2);
+    backdrop-filter: blur(30px) saturate(2.2);
+    border: 1px solid rgba(255, 255, 255, 0.95);
+    border-radius: 20px;
+    box-shadow:
+        inset 0 1px 0 rgba(255, 255, 255, 1),
+        inset 0 -1px 0 rgba(255, 255, 255, 0.4),
+        inset 1px 0 0 rgba(255, 255, 255, 0.35),
+        0 0 0 1px rgba(147, 197, 253, 0.35),
+        0 16px 48px -12px rgba(37, 99, 235, 0.4),
+        0 2px 8px -2px rgba(15, 23, 42, 0.1);
+}
+
+/* Ganti tema terang/gelap yang mulus (View Transitions API + fallback). */
+::view-transition-old(root),
+::view-transition-new(root) {
+    animation-duration: 0.45s;
+}
+
+@layer base {
+    *,
+    ::before,
+    ::after {
+        transition-property:
+            background-color, border-color, color, fill, stroke;
+        transition-duration: 0.25s;
+    }
+
+    /* Scroll halus untuk link anchor + offset navbar fixed. */
+    html {
+        scroll-behavior: smooth;
+        scroll-padding-top: 110px;
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+        html {
+            scroll-behavior: auto;
+        }
+    }
+}
+
+html:not(.dark) .glass-chip {
+    background: linear-gradient(
+        135deg,
+        rgba(255, 255, 255, 0.65) 0%,
+        rgba(147, 197, 253, 0.6) 55%,
+        rgba(96, 165, 250, 0.55) 100%
+    );
+    -webkit-backdrop-filter: blur(20px) saturate(2.1);
+    backdrop-filter: blur(20px) saturate(2.1);
+    border: 1px solid rgba(255, 255, 255, 0.95);
+    border-radius: 999px;
+    box-shadow:
+        inset 0 2px 3px rgba(255, 255, 255, 1),
+        inset 0 -2px 4px rgba(37, 99, 235, 0.25),
+        0 0 0 1px rgba(59, 130, 246, 0.5),
+        0 10px 28px -8px rgba(37, 99, 235, 0.55);
+}
+
+html:not(.dark) .glass-lift {
+    transition:
+        transform 0.35s ease,
+        box-shadow 0.35s ease,
+        border-color 0.35s ease;
+}
+
+html:not(.dark) .glass-lift:hover {
+    transform: translateY(-4px);
+    border-color: rgba(147, 197, 253, 0.9);
+    box-shadow:
+        inset 0 1px 0 rgba(255, 255, 255, 0.95),
+        inset 0 -1px 0 rgba(255, 255, 255, 0.35),
+        0 22px 48px -16px rgba(59, 130, 246, 0.42),
+        0 2px 8px -2px rgba(15, 23, 42, 0.08);
+}
+
+/* Notched pixel corners. Don't combine with box-shadow on the same
+ * element — clip-path would cut the shadow off. */
+html:not(.dark) .pixel-corners {
+    border-radius: 0;
+    clip-path: polygon(
+        10px 0,
+        calc(100% - 10px) 0,
+        100% 10px,
+        100% calc(100% - 10px),
+        calc(100% - 10px) 100%,
+        10px 100%,
+        0 calc(100% - 10px),
+        0 10px
+    );
+}
+
+html:not(.dark) .pixel-corners-sm {
+    border-radius: 0;
+    clip-path: polygon(
+        6px 0,
+        calc(100% - 6px) 0,
+        100% 6px,
+        100% calc(100% - 6px),
+        calc(100% - 6px) 100%,
+        6px 100%,
+        0 calc(100% - 6px),
+        0 6px
+    );
+}
+
+html:not(.dark) .pixel-dot {
+    border-radius: 2px;
+}
+
+/* Chunky retro button: hard border + hard offset shadow + press physics. */
+html:not(.dark) .pixel-btn {
+    border: 2px solid #0f172a;
+    border-radius: 8px;
+    box-shadow: 5px 5px 0 0 #0f172a;
+    transition:
+        transform 0.12s ease,
+        box-shadow 0.12s ease;
+}
+
+html:not(.dark) .pixel-btn:hover {
+    transform: translate(2px, 2px);
+    box-shadow: 3px 3px 0 0 #0f172a;
+}
+
+html:not(.dark) .pixel-btn:active {
+    transform: translate(5px, 5px);
+    box-shadow: 0 0 0 0 #0f172a;
+}
+
+/* Sekunder kaca: pasangan pixel-btn untuk aksi non-primer. */
+html:not(.dark) .btn-glass {
+    background: linear-gradient(
+        135deg,
+        rgba(255, 255, 255, 0.88),
+        rgba(239, 246, 255, 0.62)
+    );
+    -webkit-backdrop-filter: blur(12px) saturate(1.5);
+    backdrop-filter: blur(12px) saturate(1.5);
+    border: 1px solid rgba(255, 255, 255, 0.9);
+    border-radius: 10px;
+    box-shadow:
+        inset 0 1px 0 rgba(255, 255, 255, 0.95),
+        0 4px 14px -6px rgba(59, 130, 246, 0.3);
+    transition:
+        transform 0.2s ease,
+        box-shadow 0.2s ease,
+        border-color 0.2s ease;
+}
+
+html:not(.dark) .btn-glass:hover {
+    transform: translateY(-1px);
+    border-color: rgba(147, 197, 253, 0.9);
+    box-shadow:
+        inset 0 1px 0 rgba(255, 255, 255, 0.95),
+        0 8px 20px -8px rgba(59, 130, 246, 0.45);
+}
+
+/* Pixel dot-matrix backdrop. */
+html:not(.dark) .pixel-dots {
+    background-image: radial-gradient(
+        rgba(2, 132, 199, 0.16) 1.5px,
+        transparent 1.6px
+    );
+    background-size: 22px 22px;
 }

@@ -108,6 +108,7 @@ export default function Profile({
                                 <Button
                                     disabled={processing}
                                     data-test="update-profile-button"
+                                    className="pixel-btn"
                                 >
                                     Save
                                 </Button>

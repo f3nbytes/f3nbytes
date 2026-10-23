@@ -86,7 +86,7 @@ export default function Register() {
 
                             <Button
                                 type="submit"
-                                className="mt-2 w-full"
+                                className="pixel-btn mt-2 w-full"
                                 tabIndex={5}
                                 data-test="register-user-button"
                             >

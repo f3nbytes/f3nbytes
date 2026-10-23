@@ -29,7 +29,7 @@ export default function ConfirmPassword() {
 
                         <div className="flex items-center">
                             <Button
-                                className="w-full"
+                                className="pixel-btn w-full"
                                 disabled={processing}
                                 data-test="confirm-password-button"
                             >

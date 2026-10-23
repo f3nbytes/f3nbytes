@@ -10,7 +10,7 @@ export type UseAppearanceReturn = {
 };
 
 const listeners = new Set<() => void>();
-let currentAppearance: Appearance = 'system';
+let currentAppearance: Appearance = 'light';
 
 const prefersDark = (): boolean => {
     if (typeof window === 'undefined') {
@@ -47,9 +47,21 @@ const applyTheme = (appearance: Appearance): void => {
     }
 
     const isDark = isDarkMode(appearance);
+    const swap = (): void => {
+        document.documentElement.classList.toggle('dark', isDark);
+        document.documentElement.style.colorScheme = isDark ? 'dark' : 'light';
+    };
 
-    document.documentElement.classList.toggle('dark', isDark);
-    document.documentElement.style.colorScheme = isDark ? 'dark' : 'light';
+    // Transisi mulus saat ganti tema; fallback instan bila tak didukung.
+    const doc = document as Document & {
+        startViewTransition?: (callback: () => void) => void;
+    };
+
+    if (typeof doc.startViewTransition === 'function') {
+        doc.startViewTransition(swap);
+    } else {
+        swap();
+    }
 };
 
 const subscribe = (callback: () => void) => {
@@ -75,9 +87,11 @@ export function initializeTheme(): void {
         return;
     }
 
-    if (!localStorage.getItem('appearance')) {
-        localStorage.setItem('appearance', 'system');
-        setCookie('appearance', 'system');
+    const stored = localStorage.getItem('appearance');
+
+    if (stored !== 'light' && stored !== 'dark') {
+        localStorage.setItem('appearance', 'light');
+        setCookie('appearance', 'light');
     }
 
     currentAppearance = getStoredAppearance();
@@ -91,7 +105,7 @@ export function useAppearance(): UseAppearanceReturn {
     const appearance: Appearance = useSyncExternalStore(
         subscribe,
         () => currentAppearance,
-        () => 'system',
+        () => 'light',
     );
 
     const resolvedAppearance: ResolvedAppearance = isDarkMode(appearance)

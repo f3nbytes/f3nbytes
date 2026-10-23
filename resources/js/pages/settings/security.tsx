@@ -140,6 +140,7 @@ export default function Security({
                                 <Button
                                     disabled={processing}
                                     data-test="update-password-button"
+                                    className="pixel-btn"
                                 >
                                     Save password
                                 </Button>
@@ -171,6 +172,7 @@ export default function Security({
                                             variant="destructive"
                                             type="submit"
                                             disabled={processing}
+                                            className="pixel-btn"
                                         >
                                             Disable 2FA
                                         </Button>
@@ -197,6 +199,7 @@ export default function Security({
                                 {hasSetupData ? (
                                     <Button
                                         onClick={() => setShowSetupModal(true)}
+                                        className="pixel-btn"
                                     >
                                         <ShieldCheck />
                                         Continue setup
@@ -212,6 +215,7 @@ export default function Security({
                                             <Button
                                                 type="submit"
                                                 disabled={processing}
+                                                className="pixel-btn"
                                             >
                                                 Enable 2FA
                                             </Button>

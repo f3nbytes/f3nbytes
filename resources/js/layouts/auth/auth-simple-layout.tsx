@@ -30,7 +30,7 @@ export default function AuthSimpleLayout({
                             </p>
                         </div>
                     </div>
-                    {children}
+                    <div className="glass p-6 sm:p-8">{children}</div>
                 </div>
             </div>
         </div>
