@@ -17,6 +17,7 @@ import {
     Play,
     Plus,
     RotateCcw,
+    RotateCw,
     Skull,
     Sparkles,
     Swords,
@@ -653,6 +654,52 @@ export default function Game() {
         return () => mq.removeListener(handler);
     }, []);
 
+    const [isPortrait, setIsPortrait] = useState(
+        () =>
+            typeof window !== 'undefined' &&
+            window.matchMedia('(orientation: portrait)').matches,
+    );
+
+    useEffect(() => {
+        if (typeof window === 'undefined') {
+            return;
+        }
+
+        const mq = window.matchMedia('(orientation: portrait)');
+        const handler = (e: MediaQueryListEvent) => setIsPortrait(e.matches);
+
+        if (typeof mq.addEventListener === 'function') {
+            mq.addEventListener('change', handler);
+
+            return () => mq.removeEventListener('change', handler);
+        }
+
+        mq.addListener(handler);
+
+        return () => mq.removeListener(handler);
+    }, []);
+
+    // Minta layar penuh + kunci orientasi landscape (didukung Chrome Android).
+    // iOS tidak mengizinkan lock, jadi pengguna tetap diarahkan memutar HP.
+    const requestLandscape = useCallback(async (): Promise<void> => {
+        try {
+            if (!document.fullscreenElement) {
+                await document.documentElement.requestFullscreen?.();
+            }
+        } catch {
+            // Layar penuh tidak tersedia; lanjut ke kunci orientasi.
+        }
+
+        try {
+            const orientation = screen.orientation as ScreenOrientation & {
+                lock?: (mode: string) => Promise<void>;
+            };
+            await orientation.lock?.('landscape');
+        } catch {
+            // Kunci orientasi tidak didukung (mis. iOS).
+        }
+    }, []);
+
     // Host: kirim snapshot satu per satu (selalu yang terbaru).
     const pendingSnap = useRef<Snapshot | null>(null);
     const snapBusy = useRef(false);
@@ -991,6 +1038,26 @@ export default function Game() {
             gameRef.current = null;
         };
     }, [flushSnap]);
+
+    // HP vertikal = tidak boleh main. Bekukan game + lepas input gerak
+    // agar hero tidak jalan sendiri di balik layar putar HP.
+    useEffect(() => {
+        const game = gameRef.current;
+
+        if (!game) {
+            return;
+        }
+
+        if (isTouch && isPortrait) {
+            game.setPaused(true);
+            game.setAxis('p1', 0, 0);
+            game.setLocalAxis(0, 0);
+            axisRef.current = { x: 0, y: 0 };
+            sendRef.current?.();
+        } else {
+            game.setPaused(false);
+        }
+    }, [isTouch, isPortrait]);
 
     // Kirim input lokal ke host (mode client).
     useEffect(() => {
@@ -1831,9 +1898,11 @@ export default function Game() {
         <>
             <Head title="F3N Story — Pixel RPG" />
             <MotionConfig reducedMotion="user">
-                <main className="flex h-screen flex-col overflow-hidden bg-[#070b16] font-sans text-slate-100">
+                <main className="flex h-[100dvh] flex-col overflow-hidden bg-[#070b16] font-sans text-slate-100">
                     <div className="pointer-events-none fixed inset-0 bg-[radial-gradient(circle_at_50%_0%,rgba(59,130,246,0.15),transparent_50%)]" />
-                    <div className="relative mx-auto flex h-full min-h-0 w-full flex-col gap-3 px-4 py-4">
+                    <div
+                        className={`relative mx-auto flex h-full min-h-0 w-full flex-col ${isTouch ? 'gap-1 p-1' : 'gap-3 px-4 py-4'}`}
+                    >
                         {/* Layar game */}
                         <div
                             ref={wrapRef}
@@ -1849,6 +1918,20 @@ export default function Game() {
                                 onContextMenu={(e) => e.preventDefault()}
                                 className="block h-full w-full cursor-crosshair touch-none object-contain [image-rendering:pixelated]"
                             />
+                            {/* Analog gerak di dalam layar game (khusus sentuh) */}
+                            {isTouch &&
+                                !dialog &&
+                                (phase === 'story' ||
+                                    phase === 'quest' ||
+                                    phase === 'roam' ||
+                                    phase === 'combat') && (
+                                    <div className="absolute bottom-3 left-3 z-30 flex flex-col items-center gap-1 select-none">
+                                        <AnalogStick onChange={touchAxis} />
+                                        <span className="rounded-full bg-slate-950/60 px-2 py-0.5 font-pixel text-[7px] tracking-wider text-cyan-200/80 backdrop-blur-sm">
+                                            GERAK
+                                        </span>
+                                    </div>
+                                )}
                             <Link
                                 href="/"
                                 aria-label="Kembali"
@@ -2119,7 +2202,9 @@ export default function Game() {
 
                                     {/* Party panel (bottom-left, compact) */}
                                     {!dialog && (
-                                        <div className="pointer-events-none absolute bottom-[2%] left-[1.5%] flex flex-col gap-[0.4cqw] rounded-[0.7cqw] border border-white/10 bg-slate-950/55 px-[0.7cqw] py-[0.6cqw] backdrop-blur-sm">
+                                        <div
+                                            className={`pointer-events-none absolute left-[1.5%] flex flex-col gap-[0.4cqw] rounded-[0.7cqw] border border-white/10 bg-slate-950/55 px-[0.7cqw] py-[0.6cqw] backdrop-blur-sm ${isTouch ? 'bottom-[8.5rem]' : 'bottom-[2%]'}`}
+                                        >
                                             {hud.party.map((m, i) => {
                                                 const isMe = netActive
                                                     ? i === online?.myHero
@@ -3910,35 +3995,37 @@ export default function Game() {
                                 </motion.div>
                             )}
                         </div>
-
-                        {/* Kontrol sentuh: analog gerak + aksi di hotbar canvas */}
-                        {isTouch && (
-                            <div className="flex items-center justify-between gap-4 rounded-xl border border-white/10 bg-gradient-to-r from-slate-900/80 to-slate-950/80 px-3 py-3 shadow-[0_-4px_20px_rgba(0,0,0,0.3)] backdrop-blur-md select-none sm:px-4">
-                                <div className="flex min-w-0 flex-1 items-center gap-3">
-                                    <AnalogStick onChange={touchAxis} />
-                                    <div className="flex min-w-0 flex-col gap-0.5">
-                                        <span className="font-pixel text-[8px] tracking-wider text-cyan-300">
-                                            GERAK
-                                        </span>
-                                        <span className="font-mono text-[9px] leading-3.5 text-slate-400">
-                                            Geser analog
-                                        </span>
-                                        <span className="font-mono text-[9px] leading-3.5 text-slate-500">
-                                            Lepas = berhenti
-                                        </span>
-                                    </div>
-                                </div>
-                                <div className="flex max-w-[96px] shrink-0 flex-col items-end gap-1 text-right">
-                                    <span className="font-pixel text-[8px] tracking-wider text-cyan-300">
-                                        AKSI
-                                    </span>
-                                    <span className="font-mono text-[9px] leading-3.5 text-slate-400">
-                                        Tombol bulat di kanan
-                                    </span>
-                                </div>
-                            </div>
-                        )}
                     </div>
+                    {/* Game wajib landscape di perangkat sentuh */}
+                    {isTouch && isPortrait && (
+                        <div className="fixed inset-0 z-[100] flex flex-col items-center justify-center gap-6 bg-[#070b16] px-8 text-center">
+                            <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_50%_40%,rgba(34,211,238,0.18),transparent_55%)]" />
+                            <div className="relative flex size-24 items-center justify-center rounded-3xl border border-cyan-400/30 bg-slate-950/80 shadow-[0_0_40px_rgba(34,211,238,0.25)]">
+                                <RotateCw className="size-12 animate-pulse text-cyan-300" />
+                            </div>
+                            <div className="relative flex flex-col gap-2">
+                                <h1 className="font-pixel text-base tracking-wider text-cyan-200">
+                                    PUTAR KE LANDSCAPE
+                                </h1>
+                                <p className="max-w-xs font-mono text-xs leading-5 text-slate-400">
+                                    F3N Story hanya bisa dimainkan dalam posisi
+                                    horizontal. Putar HP kamu untuk melanjutkan.
+                                </p>
+                            </div>
+                            <button
+                                type="button"
+                                onClick={() => void requestLandscape()}
+                                className="relative inline-flex items-center gap-2 rounded-xl border border-cyan-300/50 bg-cyan-400/15 px-5 py-3 font-pixel text-[10px] tracking-wider text-cyan-100 transition-all active:scale-95"
+                            >
+                                <RotateCw className="size-4" />
+                                BUKA LAYAR PENUH
+                            </button>
+                            <span className="relative max-w-xs font-mono text-[10px] leading-4 text-slate-500">
+                                Jika layar tidak berputar, matikan kunci rotasi
+                                di pengaturan HP.
+                            </span>
+                        </div>
+                    )}
                 </main>
             </MotionConfig>
         </>
