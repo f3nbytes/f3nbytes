@@ -86,6 +86,154 @@ const SKILL_KEYS = [
     'Numpad3',
 ];
 
+/** Analog virtual untuk gerak di layar sentuh. */
+function AnalogStick({
+    onChange,
+}: {
+    onChange: (x: number, y: number) => void;
+}) {
+    const baseRef = useRef<HTMLDivElement>(null);
+    const knobRef = useRef<HTMLDivElement>(null);
+    const pointerRef = useRef<number | null>(null);
+    const valueRef = useRef({ x: 0, y: 0 });
+    const onChangeRef = useRef(onChange);
+    const [active, setActive] = useState(false);
+
+    useEffect(() => {
+        onChangeRef.current = onChange;
+    }, [onChange]);
+
+    const update = useCallback((clientX: number, clientY: number): void => {
+        const base = baseRef.current;
+        const knob = knobRef.current;
+
+        if (!base || !knob) {
+            return;
+        }
+
+        const rect = base.getBoundingClientRect();
+        const cx = rect.left + rect.width / 2;
+        const cy = rect.top + rect.height / 2;
+        const radius = rect.width * 0.32;
+        let dx = (clientX - cx) / radius;
+        let dy = (clientY - cy) / radius;
+        const rawLen = Math.hypot(dx, dy);
+
+        if (rawLen > 1) {
+            dx /= rawLen;
+            dy /= rawLen;
+        }
+
+        // Deadzone kecil supaya jari yang diam tidak membuat hero berjalan.
+        const mag = Math.min(1, rawLen);
+        let nx = 0;
+        let ny = 0;
+
+        if (mag > 0.16) {
+            const scaled = (mag - 0.16) / 0.84;
+            nx = Math.round((dx / Math.max(mag, 0.001)) * scaled * 100) / 100;
+            ny = Math.round((dy / Math.max(mag, 0.001)) * scaled * 100) / 100;
+        }
+
+        knob.style.transform = `translate3d(${dx * radius}px, ${dy * radius}px, 0)`;
+
+        if (valueRef.current.x !== nx || valueRef.current.y !== ny) {
+            valueRef.current = { x: nx, y: ny };
+            onChangeRef.current(nx, ny);
+        }
+    }, []);
+
+    const reset = useCallback((): void => {
+        pointerRef.current = null;
+        valueRef.current = { x: 0, y: 0 };
+        setActive(false);
+
+        if (knobRef.current) {
+            knobRef.current.style.transform = 'translate3d(0, 0, 0)';
+        }
+
+        onChangeRef.current(0, 0);
+    }, []);
+
+    useEffect(() => {
+        return () => {
+            pointerRef.current = null;
+            onChangeRef.current(0, 0);
+        };
+    }, []);
+
+    const onPointerDown = (e: ReactPointerEvent<HTMLDivElement>): void => {
+        if (pointerRef.current !== null) {
+            return;
+        }
+
+        pointerRef.current = e.pointerId;
+        setActive(true);
+        e.currentTarget.setPointerCapture(e.pointerId);
+        update(e.clientX, e.clientY);
+        e.preventDefault();
+    };
+
+    const onPointerMove = (e: ReactPointerEvent<HTMLDivElement>): void => {
+        if (pointerRef.current !== e.pointerId) {
+            return;
+        }
+
+        update(e.clientX, e.clientY);
+        e.preventDefault();
+    };
+
+    const onPointerEnd = (e: ReactPointerEvent<HTMLDivElement>): void => {
+        if (pointerRef.current !== e.pointerId) {
+            return;
+        }
+
+        if (e.currentTarget.hasPointerCapture(e.pointerId)) {
+            e.currentTarget.releasePointerCapture(e.pointerId);
+        }
+
+        reset();
+        e.preventDefault();
+    };
+
+    return (
+        <div
+            ref={baseRef}
+            role="application"
+            aria-label="Analog gerak"
+            aria-roledescription="joystick"
+            onPointerDown={onPointerDown}
+            onPointerMove={onPointerMove}
+            onPointerUp={onPointerEnd}
+            onPointerCancel={onPointerEnd}
+            onLostPointerCapture={onPointerEnd}
+            onContextMenu={(e) => e.preventDefault()}
+            className={`relative size-20 shrink-0 touch-none rounded-full border transition-colors duration-150 select-none sm:size-24 ${
+                active
+                    ? 'border-cyan-300/70 bg-cyan-400/15 shadow-[0_0_24px_rgba(34,211,238,0.25),inset_0_0_18px_rgba(34,211,238,0.12)]'
+                    : 'border-cyan-400/30 bg-gradient-to-b from-white/10 to-white/[0.03] shadow-[inset_0_1px_0_rgba(255,255,255,0.12),0_4px_14px_rgba(0,0,0,0.35)]'
+            }`}
+            style={{ touchAction: 'none' }}
+        >
+            <span className="pointer-events-none absolute inset-3 rounded-full border border-cyan-200/10" />
+            <span className="pointer-events-none absolute top-1/2 left-1/2 h-px w-8 -translate-x-1/2 -translate-y-1/2 bg-cyan-200/15" />
+            <span className="pointer-events-none absolute top-1/2 left-1/2 h-8 w-px -translate-x-1/2 -translate-y-1/2 bg-cyan-200/15" />
+            <span className="pointer-events-none absolute inset-0 flex items-center justify-center">
+                <span
+                    ref={knobRef}
+                    className={`size-9 rounded-full border transition-[box-shadow,background-color] duration-150 sm:size-10 ${
+                        active
+                            ? 'border-cyan-100/80 bg-gradient-to-b from-cyan-100 to-cyan-400 shadow-[0_0_18px_rgba(34,211,238,0.75)]'
+                            : 'border-cyan-200/40 bg-gradient-to-b from-cyan-200/90 to-cyan-500/90 shadow-[0_3px_10px_rgba(8,47,73,0.7),inset_0_1px_0_rgba(255,255,255,0.65)]'
+                    }`}
+                >
+                    <span className="absolute inset-2 rounded-full border border-white/20" />
+                </span>
+            </span>
+        </div>
+    );
+}
+
 function HotbarSlot({
     label,
     icon,
@@ -3763,105 +3911,29 @@ export default function Game() {
                             )}
                         </div>
 
-                        {/* Kontrol sentuh: D-pad gerak, aksi via tombol bulat di canvas */}
+                        {/* Kontrol sentuh: analog gerak + aksi di hotbar canvas */}
                         {isTouch && (
-                            <div className="flex items-center justify-between gap-4 rounded-xl border border-white/10 bg-gradient-to-r from-slate-900/80 to-slate-950/80 px-4 py-3 shadow-[0_-4px_20px_rgba(0,0,0,0.3)] backdrop-blur-md select-none">
-                                <div className="grid grid-cols-3 gap-1.5">
-                                    <span />
-                                    <button
-                                        type="button"
-                                        className="flex items-center justify-center rounded-xl border border-cyan-400/20 bg-gradient-to-b from-white/15 to-white/5 p-3.5 text-cyan-300 shadow-[0_3px_0_rgba(0,0,0,0.4),inset_0_1px_0_rgba(255,255,255,0.2)] transition-all active:translate-y-[2px] active:bg-cyan-400/20 active:shadow-none sm:p-3"
-                                        aria-label="Gerak atas"
-                                        onPointerDown={() => touchAxis(0, -1)}
-                                        onPointerUp={() => touchAxis(0, 0)}
-                                        onPointerLeave={() => touchAxis(0, 0)}
-                                    >
-                                        <svg
-                                            className="size-5"
-                                            viewBox="0 0 24 24"
-                                            fill="none"
-                                            stroke="currentColor"
-                                            strokeWidth="3"
-                                            strokeLinecap="round"
-                                            strokeLinejoin="round"
-                                        >
-                                            <path d="M12 5v14M5 12l7-7 7 7" />
-                                        </svg>
-                                    </button>
-                                    <span />
-                                    <button
-                                        type="button"
-                                        className="flex items-center justify-center rounded-xl border border-cyan-400/20 bg-gradient-to-b from-white/15 to-white/5 p-3.5 text-cyan-300 shadow-[0_3px_0_rgba(0,0,0,0.4),inset_0_1px_0_rgba(255,255,255,0.2)] transition-all active:translate-y-[2px] active:bg-cyan-400/20 active:shadow-none sm:p-3"
-                                        aria-label="Gerak kiri"
-                                        onPointerDown={() => touchAxis(-1, 0)}
-                                        onPointerUp={() => touchAxis(0, 0)}
-                                        onPointerLeave={() => touchAxis(0, 0)}
-                                    >
-                                        <svg
-                                            className="size-5"
-                                            viewBox="0 0 24 24"
-                                            fill="none"
-                                            stroke="currentColor"
-                                            strokeWidth="3"
-                                            strokeLinecap="round"
-                                            strokeLinejoin="round"
-                                        >
-                                            <path d="M19 12H5M12 5l-7 7 7 7" />
-                                        </svg>
-                                    </button>
-                                    <div className="flex items-center justify-center">
-                                        <div className="size-3 rounded-full border border-cyan-400/30 bg-cyan-400/10" />
+                            <div className="flex items-center justify-between gap-4 rounded-xl border border-white/10 bg-gradient-to-r from-slate-900/80 to-slate-950/80 px-3 py-3 shadow-[0_-4px_20px_rgba(0,0,0,0.3)] backdrop-blur-md select-none sm:px-4">
+                                <div className="flex min-w-0 flex-1 items-center gap-3">
+                                    <AnalogStick onChange={touchAxis} />
+                                    <div className="flex min-w-0 flex-col gap-0.5">
+                                        <span className="font-pixel text-[8px] tracking-wider text-cyan-300">
+                                            GERAK
+                                        </span>
+                                        <span className="font-mono text-[9px] leading-3.5 text-slate-400">
+                                            Geser analog
+                                        </span>
+                                        <span className="font-mono text-[9px] leading-3.5 text-slate-500">
+                                            Lepas = berhenti
+                                        </span>
                                     </div>
-                                    <button
-                                        type="button"
-                                        className="flex items-center justify-center rounded-xl border border-cyan-400/20 bg-gradient-to-b from-white/15 to-white/5 p-3.5 text-cyan-300 shadow-[0_3px_0_rgba(0,0,0,0.4),inset_0_1px_0_rgba(255,255,255,0.2)] transition-all active:translate-y-[2px] active:bg-cyan-400/20 active:shadow-none sm:p-3"
-                                        aria-label="Gerak kanan"
-                                        onPointerDown={() => touchAxis(1, 0)}
-                                        onPointerUp={() => touchAxis(0, 0)}
-                                        onPointerLeave={() => touchAxis(0, 0)}
-                                    >
-                                        <svg
-                                            className="size-5"
-                                            viewBox="0 0 24 24"
-                                            fill="none"
-                                            stroke="currentColor"
-                                            strokeWidth="3"
-                                            strokeLinecap="round"
-                                            strokeLinejoin="round"
-                                        >
-                                            <path d="M5 12h14M12 5l7 7-7 7" />
-                                        </svg>
-                                    </button>
-                                    <span />
-                                    <button
-                                        type="button"
-                                        className="flex items-center justify-center rounded-xl border border-cyan-400/20 bg-gradient-to-b from-white/15 to-white/5 p-3.5 text-cyan-300 shadow-[0_3px_0_rgba(0,0,0,0.4),inset_0_1px_0_rgba(255,255,255,0.2)] transition-all active:translate-y-[2px] active:bg-cyan-400/20 active:shadow-none sm:p-3"
-                                        aria-label="Gerak bawah"
-                                        onPointerDown={() => touchAxis(0, 1)}
-                                        onPointerUp={() => touchAxis(0, 0)}
-                                        onPointerLeave={() => touchAxis(0, 0)}
-                                    >
-                                        <svg
-                                            className="size-5"
-                                            viewBox="0 0 24 24"
-                                            fill="none"
-                                            stroke="currentColor"
-                                            strokeWidth="3"
-                                            strokeLinecap="round"
-                                            strokeLinejoin="round"
-                                        >
-                                            <path d="M12 5v14M5 12l7 7 7-7" />
-                                        </svg>
-                                    </button>
-                                    <span />
                                 </div>
-                                <div className="flex max-w-[190px] flex-col items-end gap-1.5 text-right">
+                                <div className="flex max-w-[96px] shrink-0 flex-col items-end gap-1 text-right">
                                     <span className="font-pixel text-[8px] tracking-wider text-cyan-300">
-                                        KONTROL
+                                        AKSI
                                     </span>
-                                    <span className="font-mono text-[10px] leading-4 text-slate-400">
-                                        Ketuk tombol bulat di kanan layar untuk
-                                        serang, dodge, skill & interaksi
+                                    <span className="font-mono text-[9px] leading-3.5 text-slate-400">
+                                        Tombol bulat di kanan
                                     </span>
                                 </div>
                             </div>

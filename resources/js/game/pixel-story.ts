@@ -2740,13 +2740,15 @@ export class PixelStoryGame {
                 p.walkT += dt * 14;
             } else if (mx !== 0 || my !== 0) {
                 const len = Math.hypot(mx, my);
-                const sp = p.def.speed;
+                // Analog: magnitudo menentukan kecepatan; keyboard tetap
+                // penuh karena panjang vektornya minimal 1.
+                const sp = p.def.speed * Math.min(1, len);
                 p.x += (mx / len) * sp * dt;
                 p.y += (my / len) * sp * dt;
                 p.faceX = mx / len;
                 p.faceY = my / len;
                 p.moving = true;
-                p.walkT += dt * 10;
+                p.walkT += dt * (6 + Math.min(1, len) * 4);
             } else {
                 p.moving = false;
             }
