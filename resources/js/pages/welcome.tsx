@@ -1040,42 +1040,58 @@ function MemberModal({
 
 /** Panel menu mobile: turun lembut, item di dalamnya menyusul satu-satu. */
 const menuVariants = (reduceMotion: boolean | null): Variants => ({
-    hidden: { opacity: 0, y: -14, scaleY: 0.94 },
+    hidden: {
+        opacity: 0,
+        y: -22,
+        scaleY: 0.95,
+        rotateX: -7,
+        filter: 'blur(10px)',
+    },
     show: {
         opacity: 1,
         y: 0,
         scaleY: 1,
+        rotateX: 0,
+        filter: 'blur(0px)',
         transition: reduceMotion
             ? { duration: 0 }
             : {
                   type: 'spring',
-                  stiffness: 420,
-                  damping: 34,
-                  mass: 0.7,
-                  staggerChildren: 0.045,
-                  delayChildren: 0.05,
+                  stiffness: 175,
+                  damping: 23,
+                  mass: 1.1,
+                  staggerChildren: 0.055,
+                  delayChildren: 0.14,
               },
     },
     exit: {
         opacity: 0,
-        y: -10,
-        scaleY: 0.97,
+        y: -14,
+        scaleY: 0.98,
+        rotateX: -4,
+        filter: 'blur(8px)',
         transition: reduceMotion
             ? { duration: 0 }
-            : { duration: 0.16, ease: 'easeIn' },
+            : { duration: 0.36, ease: 'easeInOut' },
     },
 });
 
 const menuItemVariants = (reduceMotion: boolean | null): Variants => ({
-    hidden: { opacity: 0, y: -8 },
+    hidden: { opacity: 0, y: -10 },
     show: {
         opacity: 1,
         y: 0,
         transition: reduceMotion
             ? { duration: 0 }
-            : { type: 'spring', stiffness: 460, damping: 34, mass: 0.6 },
+            : { type: 'spring', stiffness: 260, damping: 24, mass: 1 },
     },
-    exit: { opacity: 0, transition: { duration: 0.08 } },
+    exit: {
+        opacity: 0,
+        y: -6,
+        transition: reduceMotion
+            ? { duration: 0 }
+            : { duration: 0.18, ease: 'easeInOut' },
+    },
 });
 
 export default function Welcome() {
@@ -1190,7 +1206,7 @@ export default function Welcome() {
 
                         <motion.button
                             type="button"
-                            className={`pixel-corners-sm flex size-11 items-center justify-center rounded-md border transition-colors duration-200 xl:hidden ${
+                            className={`pixel-corners-sm flex size-11 items-center justify-center rounded-md border transition-colors duration-300 xl:hidden ${
                                 menuOpen
                                     ? 'border-slate-900 bg-slate-900 text-white dark:border-white dark:bg-white dark:text-slate-900'
                                     : 'border-slate-300/80 bg-white/80 text-slate-900 hover:bg-white dark:border-white/10 dark:bg-white/5 dark:text-white dark:hover:bg-white/10'
@@ -1199,11 +1215,13 @@ export default function Welcome() {
                             aria-label={menuOpen ? text.navClose : text.navOpen}
                             aria-expanded={menuOpen}
                             aria-controls="mobile-navigation"
-                            whileTap={{ scale: 0.9 }}
+                            whileHover={{ scale: 1.04 }}
+                            whileTap={{ scale: 0.94 }}
                             transition={{
                                 type: 'spring',
-                                stiffness: 520,
-                                damping: 28,
+                                stiffness: 300,
+                                damping: 24,
+                                mass: 0.8,
                             }}
                         >
                             <span
@@ -1223,8 +1241,9 @@ export default function Welcome() {
                                             ? { duration: 0 }
                                             : {
                                                   type: 'spring',
-                                                  stiffness: 520,
-                                                  damping: 30,
+                                                  stiffness: 340,
+                                                  damping: 24,
+                                                  mass: 0.9,
                                               }
                                     }
                                 />
@@ -1241,8 +1260,9 @@ export default function Welcome() {
                                             ? { duration: 0 }
                                             : {
                                                   type: 'spring',
-                                                  stiffness: 520,
-                                                  damping: 30,
+                                                  stiffness: 340,
+                                                  damping: 24,
+                                                  mass: 0.9,
                                               }
                                     }
                                 />
@@ -1259,8 +1279,9 @@ export default function Welcome() {
                                             ? { duration: 0 }
                                             : {
                                                   type: 'spring',
-                                                  stiffness: 520,
-                                                  damping: 30,
+                                                  stiffness: 340,
+                                                  damping: 24,
+                                                  mass: 0.9,
                                               }
                                     }
                                 />
