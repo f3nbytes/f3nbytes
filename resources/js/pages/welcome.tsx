@@ -22,7 +22,7 @@ import {
     X,
 } from 'lucide-react';
 import type { ReactNode, RefObject } from 'react';
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useId, useMemo, useRef, useState } from 'react';
 import AppLogoIcon from '@/components/app-logo-icon';
 import { useAppearance } from '@/hooks/use-appearance';
 import { projects as projectsIndex } from '@/routes';
@@ -709,7 +709,7 @@ function NavGlassLink({
             >
                 {label}
             </a>
-            <div className={overlay}>
+            <div className={`liquid-glass-host ${overlay}`}>
                 <LiquidGlass
                     cornerRadius={999}
                     padding="0px"
@@ -720,7 +720,7 @@ function NavGlassLink({
                     elasticity={0.08}
                     overLight={overLight}
                     mouseContainer={mouseContainer}
-                    className={`block size-full ${active ? 'shadow-[inset_0_2px_6px_rgba(2,6,23,0.25)]' : ''}`}
+                    className={`liquid-glass-core liquid-glass-fill block size-full ${active ? 'shadow-[inset_0_2px_6px_rgba(2,6,23,0.25)]' : ''}`}
                     style={{ width: '100%', height: '100%' }}
                 >
                     <span className="block size-full" />
@@ -834,6 +834,9 @@ function GlassSwitch<T extends string>({
     mouseContainer?: RefObject<HTMLElement | null> | null;
 }) {
     const liquid = useLiquidGlassSupport();
+    // Penanda unik per switch: dua switch bisa hidup bersamaan (navbar +
+    // menu mobile), layoutId kembar membuat pil aktif "melompat" antar panel.
+    const layoutKey = useId();
 
     const buttons = options.map(({ value: optionValue, label, icon: Icon }) => {
         const active = optionValue === value;
@@ -852,7 +855,7 @@ function GlassSwitch<T extends string>({
                 {active &&
                     (liquid ? (
                         <motion.span
-                            layoutId={`glass-switch-${id}`}
+                            layoutId={`glass-switch-${id}-${layoutKey}`}
                             className="absolute"
                             style={{ inset: '-7px -5px' }}
                             transition={{
@@ -879,7 +882,7 @@ function GlassSwitch<T extends string>({
                         </motion.span>
                     ) : (
                         <motion.span
-                            layoutId={`glass-switch-${id}`}
+                            layoutId={`glass-switch-${id}-${layoutKey}`}
                             className="absolute rounded-full border border-white/80 bg-white/60 shadow-[inset_0_2px_4px_rgba(255,255,255,.9),inset_0_-3px_6px_rgba(15,23,42,.12),0_8px_20px_rgba(2,6,23,.25)] backdrop-blur-xl dark:border-white/20 dark:bg-white/15"
                             style={{ inset: '-7px -5px' }}
                             transition={{
@@ -909,7 +912,7 @@ function GlassSwitch<T extends string>({
     }
 
     return (
-        <div className="relative inline-flex">
+        <div className="liquid-glass-host relative inline-flex">
             <LiquidGlass
                 cornerRadius={999}
                 padding="4px"
@@ -920,6 +923,7 @@ function GlassSwitch<T extends string>({
                 elasticity={0.2}
                 overLight={overLight}
                 mouseContainer={mouseContainer}
+                className="liquid-glass-core"
             >
                 <div
                     aria-label={ariaLabel}
@@ -1192,7 +1196,7 @@ export default function Welcome() {
                             </span>
                         </a>
 
-                        <div className="hidden items-center gap-2 lg:flex">
+                        <div className="hidden items-center gap-2 xl:flex">
                             {navItems.map((item) => (
                                 <NavGlassLink
                                     key={item.href}
@@ -1205,7 +1209,7 @@ export default function Welcome() {
                             ))}
                         </div>
 
-                        <div className="hidden items-center gap-3 md:flex">
+                        <div className="hidden items-center gap-3 xl:flex">
                             <PreferenceControls
                                 language={language}
                                 setLanguage={setLanguage}
@@ -1214,16 +1218,18 @@ export default function Welcome() {
 
                         <a
                             href="#contact"
-                            className="pixel-btn hidden items-center gap-2 bg-red-500/15 px-4 py-2 text-sm font-bold text-red-700 lg:flex dark:border dark:border-red-400/40 dark:bg-red-500/10 dark:text-red-100"
+                            className="pixel-btn hidden items-center gap-2 bg-red-500/15 px-4 py-2 text-sm font-bold text-red-700 xl:flex dark:border dark:border-red-400/40 dark:bg-red-500/10 dark:text-red-100"
                         >
                             {text.contact} <ArrowRight className="size-4" />
                         </a>
 
                         <button
                             type="button"
-                            className="pixel-corners-sm rounded-md border border-slate-300/80 bg-white/80 p-2 text-slate-900 md:hidden dark:border-white/10 dark:text-white"
+                            className="pixel-corners-sm flex size-11 items-center justify-center rounded-md border border-slate-300/80 bg-white/80 text-slate-900 xl:hidden dark:border-white/10 dark:text-white"
                             onClick={() => setMenuOpen((open) => !open)}
                             aria-label="Toggle navigation"
+                            aria-expanded={menuOpen}
+                            aria-controls="mobile-navigation"
                         >
                             {menuOpen ? (
                                 <X className="size-5" />
@@ -1235,7 +1241,8 @@ export default function Welcome() {
 
                     {menuOpen && (
                         <motion.div
-                            className="glass mx-auto mt-2 flex max-w-7xl flex-col gap-2 p-3 md:hidden dark:border dark:border-white/10 dark:bg-[#111827]/95"
+                            id="mobile-navigation"
+                            className="glass mx-auto mt-2 flex max-h-[calc(100dvh-7rem)] max-w-7xl flex-col gap-2 overflow-y-auto overscroll-contain p-3 xl:hidden dark:border dark:border-white/10 dark:bg-[#111827]/95"
                             initial={{ opacity: 0, y: -8 }}
                             animate={{ opacity: 1, y: 0 }}
                         >

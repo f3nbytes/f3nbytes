@@ -202,6 +202,43 @@ html:not(.dark) .glass {
     }
 }
 
+/*
+ * `liquid-glass-react` menaruh lapisan dekorasinya sebagai sibling biasa
+ * (position: relative). Akibatnya host ikut melebar sampai beberapa kali
+ * lebar tombol dan mendorong item navbar lain keluar layar.
+ * Di sini hanya lapisan inti yang tetap ikut flow; sisanya ditumpuk absolut.
+ * Inti juga tidak boleh ikut translate(-50%,-50%) milik library, supaya
+ * kaca duduk tepat di atas label tombolnya.
+ */
+.liquid-glass-host > :not(.liquid-glass-core) {
+    position: absolute !important;
+}
+
+.liquid-glass-host > .liquid-glass-core {
+    transform: none !important;
+}
+
+/* Kaca yang harus memenuhi kotak induk (mis. highlight item navbar). */
+.liquid-glass-fill > .glass {
+    width: 100%;
+    height: 100%;
+}
+
+/*
+ * Tint hitam bawaan library dirancang untuk latar gelap. Di tema terang
+ * lapisan itu membuat switch tema/bahasa jadi balok abu gelap, sedangkan
+ * .glass kita sudah memberi warna kaca biru muda.
+ */
+html:not(.dark) .liquid-glass-host > .bg-black {
+    display: none;
+}
+
+/*
+ * Utility yang hanya dirujuk dari dalam node_modules/liquid-glass-react.
+ * Tanpa ini Tailwind tidak membuat kelasnya dan lapisan tint jadi hitam pekat.
+ */
+@source inline("bg-black opacity-0 opacity-20 opacity-100 mix-blend-overlay");
+
 html:not(.dark) .glass-chip {
     background: linear-gradient(
         135deg,
