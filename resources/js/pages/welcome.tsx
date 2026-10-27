@@ -50,16 +50,6 @@ const navItems = [
     { label: { en: 'Contact', id: 'Kontak', jp: '連絡' }, href: '#contact' },
 ];
 
-const loadingLines: Record<Language, string[]> = {
-    en: ['Initializing F3N-Bytes...', 'Loading developers...', 'System ready.'],
-    id: ['Menyalakan F3N-Bytes...', 'Memuat developer...', 'Sistem siap.'],
-    jp: [
-        'F3N-Bytes を起動中...',
-        '開発者を読み込み中...',
-        'システム準備完了。',
-    ],
-};
-
 const targetItems: Record<Language, string[]> = {
     en: [
         'Income',
@@ -517,29 +507,6 @@ function useScrollProgress() {
     return progress;
 }
 
-function useLoadingSequence(lines: string[]) {
-    const [isLoading, setIsLoading] = useState(true);
-    const [lineIndex, setLineIndex] = useState(0);
-
-    useEffect(() => {
-        // eslint-disable-next-line react-hooks/set-state-in-effect
-        setLineIndex(0);
-
-        const lineTimer = window.setInterval(() => {
-            setLineIndex((current) => Math.min(current + 1, lines.length - 1));
-        }, 650);
-
-        const loadingTimer = window.setTimeout(() => setIsLoading(false), 2300);
-
-        return () => {
-            window.clearInterval(lineTimer);
-            window.clearTimeout(loadingTimer);
-        };
-    }, [lines]);
-
-    return { isLoading, lineIndex };
-}
-
 function useLanguage() {
     const [language, setLanguageState] = useState<Language>('en');
 
@@ -589,55 +556,6 @@ function CursorGlow() {
             className="pointer-events-none fixed z-50 hidden size-80 bg-[radial-gradient(circle,rgba(59,130,246,0.18)_0%,rgba(239,68,68,0.10)_40%,transparent_70%)] blur-2xl lg:block"
             style={{ x: springX, y: springY }}
         />
-    );
-}
-
-function LoadingScreen({
-    isLoading,
-    lineIndex,
-    lines,
-}: {
-    isLoading: boolean;
-    lineIndex: number;
-    lines: string[];
-}) {
-    if (!isLoading) {
-        return null;
-    }
-
-    return (
-        <motion.div
-            className="fixed inset-0 z-60 flex items-center justify-center bg-[#e9f3ff] dark:bg-[#0b0f19]"
-            exit={{ opacity: 0 }}
-            initial={{ opacity: 1 }}
-            animate={{ opacity: 1 }}
-        >
-            <div className="glass pixel-corners-sm w-[min(90vw,420px)] p-6 dark:border dark:border-blue-400/30 dark:bg-[#111827]/70 dark:shadow-[0_0_60px_rgba(59,130,246,0.18)] dark:backdrop-blur-xl">
-                <div className="mb-5 flex items-center gap-3 font-mono text-xs text-blue-800 dark:text-blue-200">
-                    <span className="size-2 animate-pulse bg-blue-500" />
-                    boot.sequence
-                </div>
-                <div className="flex flex-col gap-3 font-mono text-sm text-slate-600 dark:text-slate-200">
-                    {lines.map((line, index) => (
-                        <motion.span
-                            key={line}
-                            className={
-                                index <= lineIndex
-                                    ? 'text-slate-900 dark:text-slate-100'
-                                    : 'text-slate-400 dark:text-slate-600'
-                            }
-                            initial={{ opacity: 0, x: -8 }}
-                            animate={{
-                                opacity: index <= lineIndex ? 1 : 0.35,
-                                x: 0,
-                            }}
-                        >
-                            <span className="text-red-400">&gt;</span> {line}
-                        </motion.span>
-                    ))}
-                </div>
-            </div>
-        </motion.div>
     );
 }
 
@@ -1161,11 +1079,6 @@ export default function Welcome() {
     const navRef = useRef<HTMLElement | null>(null);
     const text = copy[language];
     const progress = useScrollProgress();
-    const currentLoadingLines = useMemo(
-        () => loadingLines[language],
-        [language],
-    );
-    const { isLoading, lineIndex } = useLoadingSequence(currentLoadingLines);
     const [menuOpen, setMenuOpen] = useState(false);
     const reduceMotion = useReducedMotion();
     const [activeMember, setActiveMember] = useState<TeamMember | null>(null);
@@ -1193,11 +1106,6 @@ export default function Welcome() {
     return (
         <>
             <Head title="F3N-Bytes" />
-            <LoadingScreen
-                isLoading={isLoading}
-                lineIndex={lineIndex}
-                lines={currentLoadingLines}
-            />
             <CursorGlow />
 
             <div
