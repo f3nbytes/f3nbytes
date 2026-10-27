@@ -2,6 +2,7 @@ import { Head, Link } from '@inertiajs/react';
 import { AnimatePresence, motion, MotionConfig } from 'framer-motion';
 import {
     ArrowLeft,
+    ArrowUp,
     Check,
     ChevronDown,
     Compass,
@@ -13,6 +14,7 @@ import {
     Flame,
     Heart,
     LogIn,
+    Map as MapIcon,
     Package,
     Play,
     Plus,
@@ -232,6 +234,49 @@ function AnalogStick({
                 </span>
             </span>
         </div>
+    );
+}
+
+/** Tombol aksi sentuh dengan target ketuk besar dan umpan balik instan. */
+function TouchActionButton({
+    label,
+    ariaLabel,
+    icon,
+    onPress,
+    color,
+    size = 'md',
+}: {
+    label: string;
+    ariaLabel: string;
+    icon: ReactNode;
+    onPress: () => void;
+    color: string;
+    size?: 'md' | 'lg';
+}) {
+    return (
+        <button
+            type="button"
+            aria-label={ariaLabel}
+            onPointerDown={(e) => {
+                e.preventDefault();
+                onPress();
+            }}
+            onContextMenu={(e) => e.preventDefault()}
+            className={`pointer-events-auto relative flex shrink-0 touch-manipulation flex-col items-center justify-center gap-0.5 rounded-full border-2 bg-slate-950/75 backdrop-blur-md transition select-none active:scale-90 ${
+                size === 'lg' ? 'size-16' : 'size-12'
+            }`}
+            style={{
+                borderColor: color,
+                boxShadow: `0 0 16px ${color}44, inset 0 1px 0 rgba(255,255,255,0.12)`,
+            }}
+        >
+            <span className="pointer-events-none" style={{ color }}>
+                {icon}
+            </span>
+            <span className="pointer-events-none font-pixel text-[6px] tracking-wider text-slate-100/90">
+                {label}
+            </span>
+        </button>
     );
 }
 
@@ -1932,11 +1977,101 @@ export default function Game() {
                                         </span>
                                     </div>
                                 )}
+                            {/* Aksi sentuh: peta, lompat, interaksi + aksi tempur */}
+                            {isTouch &&
+                                !dialog &&
+                                (phase === 'story' ||
+                                    phase === 'quest' ||
+                                    phase === 'roam' ||
+                                    phase === 'combat') && (
+                                    <div
+                                        className={`absolute right-2 z-30 flex flex-col items-end gap-1.5 select-none ${phase === 'combat' ? 'bottom-24' : 'bottom-3'}`}
+                                    >
+                                        {(phase === 'roam' ||
+                                            phase === 'quest' ||
+                                            phase === 'combat') && (
+                                            <div className="flex items-center gap-1.5">
+                                                <TouchActionButton
+                                                    label="PETA"
+                                                    ariaLabel="Perbesar peta"
+                                                    color="#22d3ee"
+                                                    icon={
+                                                        <MapIcon className="size-5" />
+                                                    }
+                                                    onPress={() =>
+                                                        gameRef.current?.toggleMinimap()
+                                                    }
+                                                />
+                                                <TouchActionButton
+                                                    label="LOMPAT"
+                                                    ariaLabel="Lompat"
+                                                    color="#a78bfa"
+                                                    icon={
+                                                        <ArrowUp className="size-5" />
+                                                    }
+                                                    onPress={() =>
+                                                        doAction('jmp')
+                                                    }
+                                                />
+                                                <TouchActionButton
+                                                    label="E"
+                                                    ariaLabel="Interaksi"
+                                                    color="#4ade80"
+                                                    size="lg"
+                                                    icon={
+                                                        <Compass className="size-6" />
+                                                    }
+                                                    onPress={() =>
+                                                        doAction('itr')
+                                                    }
+                                                />
+                                            </div>
+                                        )}
+                                        {phase === 'combat' && (
+                                            <div className="flex items-center gap-1.5">
+                                                <TouchActionButton
+                                                    label="SKILL"
+                                                    ariaLabel="Skill"
+                                                    color="#fbbf24"
+                                                    icon={
+                                                        <Zap className="size-5" />
+                                                    }
+                                                    onPress={() =>
+                                                        doAction('skl')
+                                                    }
+                                                />
+                                                <TouchActionButton
+                                                    label="DODGE"
+                                                    ariaLabel="Dodge"
+                                                    color="#38bdf8"
+                                                    icon={
+                                                        <Wind className="size-5" />
+                                                    }
+                                                    onPress={() =>
+                                                        doAction('dge')
+                                                    }
+                                                />
+                                                <TouchActionButton
+                                                    label="SERANG"
+                                                    ariaLabel="Serang"
+                                                    color="#f87171"
+                                                    size="lg"
+                                                    icon={
+                                                        <Swords className="size-6" />
+                                                    }
+                                                    onPress={() =>
+                                                        doAction('atk')
+                                                    }
+                                                />
+                                            </div>
+                                        )}
+                                    </div>
+                                )}
                             <Link
                                 href="/"
                                 aria-label="Kembali"
                                 title="Kembali ke beranda"
-                                className="absolute top-3 left-3 z-30 flex size-9 items-center justify-center rounded-lg border border-cyan-400/30 bg-slate-950/70 text-slate-200 backdrop-blur-md transition-all duration-200 hover:border-cyan-300 hover:bg-cyan-500/20 hover:text-white hover:shadow-[0_0_12px_rgba(34,211,238,0.4)]"
+                                className={`absolute top-3 left-3 z-30 flex items-center justify-center rounded-lg border border-cyan-400/30 bg-slate-950/70 text-slate-200 backdrop-blur-md transition-all duration-200 hover:border-cyan-300 hover:bg-cyan-500/20 hover:text-white hover:shadow-[0_0_12px_rgba(34,211,238,0.4)] ${isTouch ? 'size-11' : 'size-9'}`}
                             >
                                 <ArrowLeft className="size-4" />
                             </Link>
@@ -1970,7 +2105,7 @@ export default function Game() {
                                     muted ? 'Nyalakan suara' : 'Bisukan'
                                 }
                                 title={muted ? 'Nyalakan suara' : 'Bisukan'}
-                                className="absolute top-3 right-3 z-30 flex size-9 items-center justify-center rounded-lg border border-cyan-400/30 bg-slate-950/70 text-slate-200 backdrop-blur-md transition-all duration-200 hover:border-cyan-300 hover:bg-cyan-500/20 hover:text-white hover:shadow-[0_0_12px_rgba(34,211,238,0.4)]"
+                                className={`absolute top-3 right-3 z-30 flex items-center justify-center rounded-lg border border-cyan-400/30 bg-slate-950/70 text-slate-200 backdrop-blur-md transition-all duration-200 hover:border-cyan-300 hover:bg-cyan-500/20 hover:text-white hover:shadow-[0_0_12px_rgba(34,211,238,0.4)] ${isTouch ? 'size-11' : 'size-9'}`}
                             >
                                 {muted ? (
                                     <VolumeX className="size-4 text-red-400" />
@@ -1989,7 +2124,7 @@ export default function Game() {
                                         ? 'Sembunyikan UI (o)'
                                         : 'Tampilkan UI (o)'
                                 }
-                                className="absolute top-3 right-14 z-30 flex size-9 items-center justify-center rounded-lg border border-cyan-400/30 bg-slate-950/70 text-slate-200 backdrop-blur-md transition-all duration-200 hover:border-cyan-300 hover:bg-cyan-500/20 hover:text-white hover:shadow-[0_0_12px_rgba(34,211,238,0.4)]"
+                                className={`absolute top-3 z-30 flex items-center justify-center rounded-lg border border-cyan-400/30 bg-slate-950/70 text-slate-200 backdrop-blur-md transition-all duration-200 hover:border-cyan-300 hover:bg-cyan-500/20 hover:text-white hover:shadow-[0_0_12px_rgba(34,211,238,0.4)] ${isTouch ? 'right-[3.9rem] size-11' : 'right-14 size-9'}`}
                             >
                                 {showHud ? (
                                     <EyeOff className="size-4 text-slate-400" />
@@ -2002,11 +2137,11 @@ export default function Game() {
                                 onClick={() => setInvOpen((v) => !v)}
                                 aria-label="Tas item"
                                 title="Tas item (B)"
-                                className={`absolute top-3 right-[5.5rem] z-30 flex size-9 items-center justify-center rounded-lg border bg-slate-950/70 backdrop-blur-md transition-all duration-200 hover:border-cyan-300 hover:bg-cyan-500/20 hover:text-white ${
+                                className={`absolute top-3 z-30 flex items-center justify-center rounded-lg border bg-slate-950/70 backdrop-blur-md transition-all duration-200 hover:border-cyan-300 hover:bg-cyan-500/20 hover:text-white ${
                                     invOpen
                                         ? 'border-cyan-300 text-cyan-300'
                                         : 'border-cyan-400/30 text-slate-200'
-                                }`}
+                                } ${isTouch ? 'right-[7.05rem] size-11' : 'right-[5.5rem] size-9'}`}
                             >
                                 <Package className="size-4" />
                             </button>
@@ -2679,7 +2814,7 @@ export default function Game() {
                                 {phase === 'title' && tab === 'solo' && (
                                     <motion.div
                                         key="title-solo"
-                                        className="absolute inset-0 overflow-y-auto bg-[#070b16]"
+                                        className="absolute inset-0 overflow-y-auto overscroll-contain bg-[#070b16]"
                                         initial={{ opacity: 0, x: 60 }}
                                         animate={{ opacity: 1, x: 0 }}
                                         exit={{ opacity: 0, x: -60 }}
@@ -2755,7 +2890,9 @@ export default function Game() {
                                             )}
                                         </div>
 
-                                        <div className="relative flex min-h-full flex-col items-center justify-center gap-5 p-4 text-center sm:p-6">
+                                        <div
+                                            className={`relative flex min-h-full flex-col items-center p-3 text-center sm:p-6 ${isTouch ? 'justify-start gap-3' : 'justify-center gap-5'}`}
+                                        >
                                             {/* Title logo */}
                                             <motion.div
                                                 initial={{ opacity: 0, y: -20 }}
@@ -2767,13 +2904,13 @@ export default function Game() {
                                             >
                                                 <div
                                                     aria-label="F3N STORY"
-                                                    className="font-pixel text-4xl text-cyan-300 [text-shadow:0_0_28px_rgba(34,211,238,0.7),0_0_60px_rgba(34,211,238,0.3),4px_4px_0_rgba(2,6,23,1)] sm:text-5xl"
+                                                    className={`font-pixel text-cyan-300 [text-shadow:0_0_28px_rgba(34,211,238,0.7),0_0_60px_rgba(34,211,238,0.3),4px_4px_0_rgba(2,6,23,1)] sm:text-5xl ${isTouch ? 'text-2xl' : 'text-4xl'}`}
                                                 >
                                                     F3N STORY
                                                     <span className="ml-2 inline-block h-7 w-3.5 animate-pulse rounded-sm bg-cyan-300 align-baseline shadow-[0_0_12px_rgba(34,211,238,0.6)] sm:h-10" />
                                                 </div>
                                                 <motion.div
-                                                    className="mt-3 font-mono text-[11px] tracking-[0.35em] text-amber-300/90"
+                                                    className={`mt-2 font-mono text-[10px] tracking-[0.3em] text-amber-300/90 ${isTouch ? 'hidden' : 'mt-3 text-[11px] tracking-[0.35em]'}`}
                                                     animate={{
                                                         opacity: [0.6, 1, 0.6],
                                                     }}
@@ -2788,12 +2925,14 @@ export default function Game() {
                                             </motion.div>
 
                                             {/* Subtitle card */}
-                                            <div className="relative max-w-md overflow-hidden rounded-lg border border-cyan-400/20 bg-gradient-to-r from-cyan-500/10 via-white/[0.04] to-fuchsia-500/10 px-5 py-2.5 backdrop-blur-sm">
+                                            <div
+                                                className={`relative max-w-md overflow-hidden rounded-lg border border-cyan-400/20 bg-gradient-to-r from-cyan-500/10 via-white/[0.04] to-fuchsia-500/10 backdrop-blur-sm ${isTouch ? 'px-3 py-1.5' : 'px-5 py-2.5'}`}
+                                            >
                                                 <div className="pointer-events-none absolute inset-0 bg-gradient-to-r from-transparent via-white/5 to-transparent" />
                                                 <p className="relative font-mono text-xs leading-5 text-slate-300">
-                                                    RPG pixel 4 hero · 1
-                                                    keyboard khusus pemain solo
-                                                    · 3 AI companion
+                                                    {isTouch
+                                                        ? '4 hero · analog gerak · tombol aksi di layar'
+                                                        : 'RPG pixel 4 hero · 1 keyboard khusus pemain solo · 3 AI companion'}
                                                 </p>
                                             </div>
 
@@ -2840,7 +2979,9 @@ export default function Game() {
                                             </div>
 
                                             {/* Hero showcase cards */}
-                                            <div className="grid w-full max-w-lg grid-cols-4 gap-3">
+                                            <div
+                                                className={`grid w-full max-w-lg grid-cols-4 ${isTouch ? 'gap-2' : 'gap-3'}`}
+                                            >
                                                 {HEROES.map((h, i) => {
                                                     const active =
                                                         heroPick === i;
@@ -2869,7 +3010,9 @@ export default function Game() {
                                                                 ease: 'easeInOut',
                                                             }}
                                                         >
-                                                            <div className="relative aspect-[3/4] overflow-hidden">
+                                                            <div
+                                                                className={`relative overflow-hidden ${isTouch ? 'aspect-square' : 'aspect-[3/4]'}`}
+                                                            >
                                                                 {POSTER_IMG[
                                                                     i
                                                                 ] ? (
@@ -3002,7 +3145,7 @@ export default function Game() {
                                                         }
                                                         aria-label="Nama pemain"
                                                         placeholder="Nama kamu..."
-                                                        className="min-w-0 flex-1 rounded-lg border border-white/15 bg-white/5 px-3 py-2 text-sm text-white placeholder:text-slate-400 focus:border-cyan-300/60 focus:outline-none"
+                                                        className={`min-w-0 flex-1 rounded-lg border border-white/15 bg-white/5 px-3 py-2 text-white placeholder:text-slate-400 focus:border-cyan-300/60 focus:outline-none ${isTouch ? 'text-base' : 'text-sm'}`}
                                                     />
                                                     <label className="inline-flex shrink-0 cursor-pointer items-center gap-1.5 rounded-lg border border-white/15 bg-white/5 px-3 py-2 font-pixel text-[9px] text-slate-200 transition-colors hover:border-cyan-300/50">
                                                         {localPhoto
@@ -3045,7 +3188,7 @@ export default function Game() {
                                                     sound.click();
                                                     startSolo();
                                                 }}
-                                                className="group relative inline-flex items-center gap-2.5 overflow-hidden rounded-xl border-2 border-cyan-200 bg-gradient-to-b from-cyan-300 to-cyan-500 px-10 py-4 font-pixel text-[13px] text-[#06202a] shadow-[0_6px_0_#0e7490,0_0_30px_rgba(34,211,238,0.35)] transition-all duration-150 hover:brightness-110 active:translate-y-[3px] active:shadow-[0_3px_0_#0e7490,0_0_20px_rgba(34,211,238,0.25)]"
+                                                className={`group relative inline-flex items-center gap-2.5 overflow-hidden rounded-xl border-2 border-cyan-200 ${isTouch ? 'sticky bottom-2 z-20' : ''} bg-gradient-to-b from-cyan-300 to-cyan-500 ${isTouch ? 'px-8 py-3 text-[11px]' : 'px-10 py-4 text-[13px]'} font-pixel text-[#06202a] shadow-[0_6px_0_#0e7490,0_0_30px_rgba(34,211,238,0.35)] transition-all duration-150 hover:brightness-110 active:translate-y-[3px] active:shadow-[0_3px_0_#0e7490,0_0_20px_rgba(34,211,238,0.25)]`}
                                                 animate={{
                                                     boxShadow: [
                                                         '0 6px 0 #0e7490, 0 0 30px rgba(34,211,238,0.35)',
@@ -3066,22 +3209,57 @@ export default function Game() {
                                                 </span>
                                             </motion.button>
 
-                                            {/* Keyboard controls */}
-                                            <div className="grid w-full max-w-lg grid-cols-2 gap-2 sm:grid-cols-3">
-                                                {CONTROLS.map((c) => (
-                                                    <div
-                                                        key={c.key}
-                                                        className="flex items-center gap-2.5 rounded-lg border border-white/10 bg-white/[0.04] px-3 py-2 backdrop-blur-sm transition-colors hover:border-cyan-400/20 hover:bg-white/[0.06]"
-                                                    >
-                                                        <span className="inline-flex rounded-md border border-white/20 bg-white/10 px-2 py-1 font-mono text-[10px] font-bold text-slate-100 shadow-[0_2px_0_rgba(255,255,255,0.1)]">
-                                                            {c.p1}
-                                                        </span>
-                                                        <span className="font-pixel text-[9px] text-slate-400">
-                                                            {c.key}
-                                                        </span>
-                                                    </div>
-                                                ))}
-                                            </div>
+                                            {/* Kontrol */}
+                                            {isTouch ? (
+                                                <div className="grid w-full max-w-lg grid-cols-2 gap-1.5">
+                                                    {[
+                                                        [
+                                                            'ANALOG',
+                                                            'kiri bawah = gerak',
+                                                        ],
+                                                        [
+                                                            'AKSI',
+                                                            'tombol kanan layar',
+                                                        ],
+                                                        [
+                                                            'SERANG',
+                                                            'ketuk area game',
+                                                        ],
+                                                        [
+                                                            'DIALOG',
+                                                            'ketuk untuk lanjut',
+                                                        ],
+                                                    ].map(([key, label]) => (
+                                                        <div
+                                                            key={key}
+                                                            className="flex items-center gap-2 rounded-lg border border-white/10 bg-white/[0.04] px-2 py-1.5"
+                                                        >
+                                                            <span className="inline-flex shrink-0 rounded-md border border-cyan-300/30 bg-cyan-400/10 px-1.5 py-0.5 font-pixel text-[7px] text-cyan-200">
+                                                                {key}
+                                                            </span>
+                                                            <span className="font-mono text-[9px] text-slate-400">
+                                                                {label}
+                                                            </span>
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                            ) : (
+                                                <div className="grid w-full max-w-lg grid-cols-2 gap-2 sm:grid-cols-3">
+                                                    {CONTROLS.map((c) => (
+                                                        <div
+                                                            key={c.key}
+                                                            className="flex items-center gap-2.5 rounded-lg border border-white/10 bg-white/[0.04] px-3 py-2 backdrop-blur-sm transition-colors hover:border-cyan-400/20 hover:bg-white/[0.06]"
+                                                        >
+                                                            <span className="inline-flex rounded-md border border-white/20 bg-white/10 px-2 py-1 font-mono text-[10px] font-bold text-slate-100 shadow-[0_2px_0_rgba(255,255,255,0.1)]">
+                                                                {c.p1}
+                                                            </span>
+                                                            <span className="font-pixel text-[9px] text-slate-400">
+                                                                {c.key}
+                                                            </span>
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                            )}
                                         </div>
                                     </motion.div>
                                 )}
@@ -3091,7 +3269,7 @@ export default function Game() {
                                     !online && (
                                         <motion.div
                                             key="title-lobby"
-                                            className="absolute inset-0 overflow-y-auto bg-[#070b16]/95 p-4 sm:p-6"
+                                            className="absolute inset-0 overflow-y-auto overscroll-contain bg-[#070b16]/95 p-4 sm:p-6"
                                             initial={{ opacity: 0, x: 60 }}
                                             animate={{ opacity: 1, x: 0 }}
                                             exit={{ opacity: 0, x: -60 }}
@@ -3229,7 +3407,7 @@ export default function Game() {
                                                             }
                                                             aria-label="Nama di room"
                                                             placeholder="Masukkan nama..."
-                                                            className="w-full rounded-lg border border-white/15 bg-white/5 px-4 py-2.5 text-sm text-white shadow-[inset_0_1px_3px_rgba(0,0,0,0.3)] transition-all placeholder:text-slate-400 focus:border-cyan-300/60 focus:shadow-[inset_0_1px_3px_rgba(0,0,0,0.3),0_0_12px_rgba(34,211,238,0.15)] focus:outline-none"
+                                                            className={`w-full rounded-lg border border-white/15 bg-white/5 px-4 py-2.5 text-white shadow-[inset_0_1px_3px_rgba(0,0,0,0.3)] transition-all placeholder:text-slate-400 focus:border-cyan-300/60 focus:shadow-[inset_0_1px_3px_rgba(0,0,0,0.3),0_0_12px_rgba(34,211,238,0.15)] focus:outline-none ${isTouch ? 'text-base' : 'text-sm'}`}
                                                         />
                                                     </div>
 
@@ -3272,7 +3450,10 @@ export default function Game() {
                                                             }
                                                             aria-label="Kode room"
                                                             placeholder="KODE"
-                                                            className="w-24 rounded-lg border border-white/15 bg-white/5 px-3 py-2 text-center font-mono text-sm tracking-[0.3em] text-white shadow-[inset_0_1px_3px_rgba(0,0,0,0.3)] placeholder:text-slate-400 focus:border-cyan-300/60 focus:outline-none"
+                                                            inputMode="text"
+                                                            autoCapitalize="characters"
+                                                            autoComplete="off"
+                                                            className={`w-24 rounded-lg border border-white/15 bg-white/5 px-3 py-2 text-center font-mono tracking-[0.3em] text-white shadow-[inset_0_1px_3px_rgba(0,0,0,0.3)] placeholder:text-slate-400 focus:border-cyan-300/60 focus:outline-none ${isTouch ? 'text-base' : 'text-sm'}`}
                                                         />
                                                         <button
                                                             type="button"
@@ -3630,7 +3811,8 @@ export default function Game() {
                                     role="dialog"
                                     aria-modal="true"
                                     aria-labelledby="dialog-speaker"
-                                    className="absolute inset-x-0 bottom-0 p-3"
+                                    onClick={advanceDialog}
+                                    className="absolute inset-x-0 bottom-0 cursor-pointer p-3"
                                     initial={{ opacity: 0, y: 24 }}
                                     animate={{ opacity: 1, y: 0 }}
                                     transition={{
@@ -3673,7 +3855,9 @@ export default function Game() {
                                                 </div>
                                                 {/* Skip hint */}
                                                 <span className="rounded-md border border-white/10 bg-white/5 px-2 py-0.5 font-mono text-[9px] text-slate-400">
-                                                    SPACE
+                                                    {isTouch
+                                                        ? 'KETUK'
+                                                        : 'SPACE'}
                                                 </span>
                                             </div>
                                             <p
@@ -3685,24 +3869,30 @@ export default function Game() {
                                             </p>
                                             <div className="mt-3 flex items-center justify-between border-t border-white/5 pt-3">
                                                 <span className="font-mono text-[9px] text-slate-400">
-                                                    Klik atau tekan Space
+                                                    {isTouch
+                                                        ? 'Ketuk kotak dialog untuk lanjut'
+                                                        : 'Klik atau tekan Space'}
                                                 </span>
                                                 <div className="flex items-center gap-2">
                                                     <button
                                                         type="button"
-                                                        onClick={advanceDialog}
-                                                        className="inline-flex items-center gap-1.5 rounded-lg bg-gradient-to-b from-cyan-300 to-cyan-500 px-5 py-2 font-pixel text-[9px] text-[#06202a] shadow-[0_3px_0_#0e7490] transition-all hover:brightness-110 active:translate-y-[2px] active:shadow-[0_1px_0_#0e7490]"
+                                                        onClick={(e) => {
+                                                            e.stopPropagation();
+                                                            advanceDialog();
+                                                        }}
+                                                        className="inline-flex min-h-11 items-center gap-1.5 rounded-lg bg-gradient-to-b from-cyan-300 to-cyan-500 px-6 py-3 font-pixel text-[10px] text-[#06202a] shadow-[0_3px_0_#0e7490] transition-all hover:brightness-110 active:translate-y-[2px] active:shadow-[0_1px_0_#0e7490]"
                                                     >
                                                         LANJUT
                                                         <Compass className="size-3" />
                                                     </button>
                                                     <button
                                                         type="button"
-                                                        onClick={() => {
+                                                        onClick={(e) => {
+                                                            e.stopPropagation();
                                                             sound.click();
                                                             skipQuest();
                                                         }}
-                                                        className="inline-flex items-center gap-1.5 rounded-lg border border-fuchsia-300/40 bg-fuchsia-500/15 px-4 py-2 font-pixel text-[9px] text-fuchsia-200 shadow-[0_3px_0_rgba(192,38,211,0.45)] transition-all hover:bg-fuchsia-500/30 active:translate-y-[2px] active:shadow-none"
+                                                        className="inline-flex min-h-11 items-center gap-1.5 rounded-lg border border-fuchsia-300/40 bg-fuchsia-500/15 px-4 py-3 font-pixel text-[9px] text-fuchsia-200 shadow-[0_3px_0_rgba(192,38,211,0.45)] transition-all hover:bg-fuchsia-500/30 active:translate-y-[2px] active:shadow-none"
                                                     >
                                                         <FastForward
                                                             className="text-fuchsia-300"
