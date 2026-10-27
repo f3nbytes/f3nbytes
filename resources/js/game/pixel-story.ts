@@ -1190,6 +1190,8 @@ export class PixelStoryGame {
     private camX = 0;
     private camY = 0;
     private shake = 0;
+    /** Getar kamera bisa dimatikan dari menu jeda (aksesibilitas). */
+    private shakeEnabled = true;
     private score = 0;
     private souls = 0;
     private drops: Drop[] = [];
@@ -1321,6 +1323,15 @@ export class PixelStoryGame {
 
     setPaused(paused: boolean): void {
         this.paused = paused;
+    }
+
+    /** Matikan getar kamera tanpa mengubah efek lain. */
+    setShakeEnabled(on: boolean): void {
+        this.shakeEnabled = on;
+
+        if (!on) {
+            this.shake = 0;
+        }
     }
 
     isPaused(): boolean {
@@ -4273,8 +4284,9 @@ export class PixelStoryGame {
         c.setTransform(SS, 0, 0, SS, 0, 0);
         c.imageSmoothingEnabled = false;
 
-        const shx = this.shake > 0 ? (Math.random() - 0.5) * this.shake : 0;
-        const shy = this.shake > 0 ? (Math.random() - 0.5) * this.shake : 0;
+        const shaking = this.shakeEnabled && this.shake > 0;
+        const shx = shaking ? (Math.random() - 0.5) * this.shake : 0;
+        const shy = shaking ? (Math.random() - 0.5) * this.shake : 0;
         const ox = Math.round(-this.camX + shx);
         const oy = Math.round(-this.camY + shy);
 
@@ -5062,7 +5074,11 @@ export class PixelStoryGame {
         const big = this.mapView === 2;
         const snap = this.mapSnapshot();
 
-        const mw = Math.round(WORLD_W * (big ? 340 / WORLD_W : 108 / WORLD_W));
+        // Di layar sentuh mini map dibuat lebih kecil agar tidak menutupi arena.
+        const miniW = this.touchUi ? 92 : 108;
+        const mw = Math.round(
+            WORLD_W * (big ? 340 / WORLD_W : miniW / WORLD_W),
+        );
         const mh = Math.round(WORLD_H * (big ? 212 / WORLD_H : 68 / WORLD_H));
         const sx = mw / WORLD_W;
         const sy = mh / WORLD_H;

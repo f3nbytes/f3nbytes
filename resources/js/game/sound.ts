@@ -8,20 +8,84 @@ type Wave = OscillatorType;
 
 const midi = (m: number): number => 440 * 2 ** ((m - 69) / 12);
 
+const clamp01 = (v: number): number => Math.min(1, Math.max(0, v));
+
 class SoundEngine {
     private ctx: AudioContext | null = null;
     private master: GainNode | null = null;
+    /** Bus khusus SFX supaya volumenya bisa diatur terpisah dari musik. */
+    private sfxGain: GainNode | null = null;
     private musicGain: GainNode | null = null;
     private noiseBuf: AudioBuffer | null = null;
     private musicTimer: number | null = null;
     private step = 0;
     private muted = false;
+    private sfxVol = 0.85;
+    private musicVol = 0.5;
 
     constructor() {
         try {
             this.muted = localStorage.getItem('f3n-muted') === '1';
+            const sfxRaw = localStorage.getItem('f3n-sfx-vol');
+            const musicRaw = localStorage.getItem('f3n-music-vol');
+
+            if (sfxRaw !== null) {
+                const sfx = Number(sfxRaw);
+
+                if (Number.isFinite(sfx)) {
+                    this.sfxVol = clamp01(sfx);
+                }
+            }
+
+            if (musicRaw !== null) {
+                const music = Number(musicRaw);
+
+                if (Number.isFinite(music)) {
+                    this.musicVol = clamp01(music);
+                }
+            }
         } catch {
             this.muted = false;
+        }
+    }
+
+    getVolumes(): { sfx: number; music: number } {
+        return { sfx: this.sfxVol, music: this.musicVol };
+    }
+
+    setSfxVolume(value: number): void {
+        this.sfxVol = clamp01(value);
+
+        try {
+            localStorage.setItem('f3n-sfx-vol', String(this.sfxVol));
+        } catch {
+            // abaikan
+        }
+
+        if (this.sfxGain && this.ctx) {
+            this.sfxGain.gain.setTargetAtTime(
+                this.sfxVol,
+                this.ctx.currentTime,
+                0.03,
+            );
+        }
+    }
+
+    setMusicVolume(value: number): void {
+        this.musicVol = clamp01(value);
+
+        try {
+            localStorage.setItem('f3n-music-vol', String(this.musicVol));
+        } catch {
+            // abaikan
+        }
+
+        if (this.musicGain && this.ctx) {
+            this.musicGain.gain.setTargetAtTime(
+                this.musicVol,
+                this.ctx.currentTime,
+                0.03,
+            );
         }
     }
 
@@ -66,8 +130,11 @@ class SoundEngine {
         this.master = this.ctx.createGain();
         this.master.gain.value = this.muted ? 0 : 0.14;
         this.master.connect(this.ctx.destination);
+        this.sfxGain = this.ctx.createGain();
+        this.sfxGain.gain.value = this.sfxVol;
+        this.sfxGain.connect(this.master);
         this.musicGain = this.ctx.createGain();
-        this.musicGain.gain.value = 0.5;
+        this.musicGain.gain.value = this.musicVol;
         this.musicGain.connect(this.master);
 
         const len = this.ctx.sampleRate;
@@ -87,7 +154,7 @@ class SoundEngine {
         slideTo?: number,
         delay = 0,
     ): void {
-        if (!this.ctx || !this.master || this.muted) {
+        if (!this.ctx || !this.sfxGain || this.muted) {
             return;
         }
 
@@ -107,7 +174,7 @@ class SoundEngine {
         g.gain.setValueAtTime(vol, t);
         g.gain.exponentialRampToValueAtTime(0.001, t + dur);
         o.connect(g);
-        g.connect(this.master);
+        g.connect(this.sfxGain);
         o.start(t);
         o.stop(t + dur + 0.02);
     }
@@ -119,7 +186,7 @@ class SoundEngine {
         type: BiquadFilterType = 'lowpass',
         delay = 0,
     ): void {
-        if (!this.ctx || !this.master || !this.noiseBuf || this.muted) {
+        if (!this.ctx || !this.sfxGain || !this.noiseBuf || this.muted) {
             return;
         }
 
@@ -135,7 +202,7 @@ class SoundEngine {
         g.gain.exponentialRampToValueAtTime(0.001, t + dur);
         src.connect(f);
         f.connect(g);
-        g.connect(this.master);
+        g.connect(this.sfxGain);
         src.start(t);
         src.stop(t + dur + 0.02);
     }

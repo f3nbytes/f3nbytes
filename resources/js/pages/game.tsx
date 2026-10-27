@@ -5,6 +5,7 @@ import {
     ArrowUp,
     Check,
     ChevronDown,
+    ChevronUp,
     Compass,
     FastForward,
     Copy,
@@ -13,9 +14,14 @@ import {
     EyeOff,
     Flame,
     Heart,
+    Home,
     LogIn,
     Map as MapIcon,
+    Maximize2,
+    Minimize2,
+    Music,
     Package,
+    Pause,
     Play,
     Plus,
     RotateCcw,
@@ -30,6 +36,7 @@ import {
     Volume2,
     VolumeX,
     Wind,
+    X,
     Zap,
 } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
@@ -72,10 +79,12 @@ const CONTROLS: { key: string; p1: string }[] = [
     { key: 'Gerak', p1: 'W A S D' },
     { key: 'Serang', p1: 'J / Klik Kiri' },
     { key: 'Dodge', p1: 'Shift / K' },
-    { key: 'Skill', p1: '1 / 2 / 3' },
+    { key: 'Skill', p1: 'L / 1 2 3' },
     { key: 'Lompat', p1: 'Space' },
     { key: 'Interaksi', p1: 'E' },
+    { key: 'Tas', p1: 'B' },
     { key: 'Peta', p1: 'M' },
+    { key: 'Jeda', p1: 'Esc' },
 ];
 
 /** Tombol skill: L atau angka 1-3 (baris atas & numpad). */
@@ -728,6 +737,60 @@ export default function Game() {
         return () => mq.removeListener(handler);
     }, []);
 
+    // --- Jeda & petunjuk ---
+    const [paused, setPaused] = useState(false);
+    const pausedRef = useRef(false);
+    const phaseRef = useRef<Phase>('title');
+    const invOpenRef = useRef(false);
+
+    useEffect(() => {
+        pausedRef.current = paused;
+    }, [paused]);
+
+    useEffect(() => {
+        phaseRef.current = phase;
+    }, [phase]);
+
+    // Petunjuk kontekstual: sekali per pemain, dipicu dari callback engine.
+    const [tip, setTip] = useState<string | null>(null);
+    const tipTimer = useRef<number | null>(null);
+    const tipShown = useRef<Set<string>>(new Set());
+
+    const showTipOnce = useCallback((key: string, text: string): void => {
+        if (tipShown.current.has(key)) {
+            return;
+        }
+
+        tipShown.current.add(key);
+
+        try {
+            if (localStorage.getItem(`f3n-tip-${key}`) === '1') {
+                return;
+            }
+
+            localStorage.setItem(`f3n-tip-${key}`, '1');
+        } catch {
+            // localStorage bisa diblokir; tetap tampilkan sekali per sesi.
+        }
+
+        setTip(text);
+
+        if (tipTimer.current !== null) {
+            window.clearTimeout(tipTimer.current);
+        }
+
+        tipTimer.current = window.setTimeout(() => setTip(null), 9000);
+    }, []);
+
+    useEffect(
+        () => () => {
+            if (tipTimer.current !== null) {
+                window.clearTimeout(tipTimer.current);
+            }
+        },
+        [],
+    );
+
     // Minta layar penuh + kunci orientasi landscape (didukung Chrome Android).
     // iOS tidak mengizinkan lock, jadi pengguna tetap diarahkan memutar HP.
     const requestLandscape = useCallback(async (): Promise<void> => {
@@ -797,12 +860,35 @@ export default function Game() {
         }
 
         const game = new PixelStoryGame(canvas, {
-            onHud: (h) => setHud(h),
+            onHud: (h) => {
+                setHud(h);
+
+                if (h.inv.length > 0) {
+                    showTipOnce(
+                        'bag',
+                        'Barang masuk tas. Tekan B atau ikon tas untuk memakainya.',
+                    );
+                }
+            },
             onPhase: (p) => {
                 setPhase(p);
 
                 if (p === 'title') {
                     setMapBig(false);
+                }
+
+                if (p === 'roam') {
+                    showTipOnce(
+                        'roam',
+                        'Dekati NPC bertanda ! lalu tekan E untuk interaksi.',
+                    );
+                }
+
+                if (p === 'combat') {
+                    showTipOnce(
+                        'combat',
+                        'Tekan L atau tombol SKILL. Souls dipakai untuk skill dan revive.',
+                    );
                 }
             },
             onMap: (big) => setMapBig(big),
@@ -945,6 +1031,11 @@ export default function Game() {
                 return;
             }
 
+            // Saat jeda, hanya Esc yang ditangani supaya input tidak menumpuk.
+            if (pausedRef.current && e.code !== 'Escape') {
+                return;
+            }
+
             pressedRef.current.add(e.code);
 
             if (e.code === 'KeyM') {
@@ -972,7 +1063,19 @@ export default function Game() {
             }
 
             if (e.code === 'Escape') {
-                setInvOpen(false);
+                if (invOpenRef.current) {
+                    setInvOpen(false);
+
+                    return;
+                }
+
+                if (
+                    phaseRef.current !== 'title' &&
+                    phaseRef.current !== 'victory' &&
+                    phaseRef.current !== 'defeat'
+                ) {
+                    setPaused((v) => !v);
+                }
 
                 return;
             }
@@ -1091,27 +1194,28 @@ export default function Game() {
             game.destroy();
             gameRef.current = null;
         };
-    }, [flushSnap]);
+    }, [flushSnap, showTipOnce]);
 
     // HP vertikal = tidak boleh main. Bekukan game + lepas input gerak
-    // agar hero tidak jalan sendiri di balik layar putar HP.
+    // agar hero tidak jalan sendiri di balik layar putar HP. Menu jeda
+    // memakai jalur yang sama supaya satu sumber kebenaran.
     useEffect(() => {
         const game = gameRef.current;
+        const blocked = paused || (isTouch && isPortrait);
 
         if (!game) {
             return;
         }
 
-        if (isTouch && isPortrait) {
-            game.setPaused(true);
+        game.setPaused(blocked);
+
+        if (blocked) {
             game.setAxis('p1', 0, 0);
             game.setLocalAxis(0, 0);
             axisRef.current = { x: 0, y: 0 };
             sendRef.current?.();
-        } else {
-            game.setPaused(false);
         }
-    }, [isTouch, isPortrait]);
+    }, [isTouch, isPortrait, paused]);
 
     // Kirim input lokal ke host (mode client).
     useEffect(() => {
@@ -1824,8 +1928,56 @@ export default function Game() {
     const [questOpen, setQuestOpen] = useState(true);
     const [invOpen, setInvOpen] = useState(false);
     const [mapBig, setMapBig] = useState(false);
+    const [partyOpen, setPartyOpen] = useState(!isTouch);
+    const [controlsOpen, setControlsOpen] = useState(!isTouch);
+    const [shakeOn, setShakeOn] = useState(() => {
+        try {
+            return localStorage.getItem('f3n-shake') !== '0';
+        } catch {
+            return true;
+        }
+    });
+    const [musicVol, setMusicVol] = useState(() =>
+        Math.round(sound.getVolumes().music * 100),
+    );
+    const [sfxVol, setSfxVol] = useState(() =>
+        Math.round(sound.getVolumes().sfx * 100),
+    );
+    const [isFullscreen, setIsFullscreen] = useState(false);
     const wrapRef = useRef<HTMLDivElement | null>(null);
     const [viewBox, setViewBox] = useState({ l: 0, t: 0, w: 480, h: 270 });
+    const partyCompact = isTouch && !partyOpen;
+
+    useEffect(() => {
+        invOpenRef.current = invOpen;
+    }, [invOpen]);
+
+    useEffect(() => {
+        const sync = (): void =>
+            setIsFullscreen(document.fullscreenElement !== null);
+
+        document.addEventListener('fullscreenchange', sync);
+
+        return () => document.removeEventListener('fullscreenchange', sync);
+    }, []);
+
+    const toggleFullscreen = useCallback((): void => {
+        if (document.fullscreenElement) {
+            void document.exitFullscreen?.();
+        } else {
+            void document.documentElement.requestFullscreen?.();
+        }
+    }, []);
+
+    useEffect(() => {
+        gameRef.current?.setShakeEnabled(shakeOn);
+
+        try {
+            localStorage.setItem('f3n-shake', shakeOn ? '1' : '0');
+        } catch {
+            // abaikan
+        }
+    }, [shakeOn]);
 
     useEffect(() => {
         if (phase === 'title') {
@@ -1961,7 +2113,7 @@ export default function Game() {
                         {/* Layar game */}
                         <div
                             ref={wrapRef}
-                            className="relative min-h-0 flex-1 overflow-hidden rounded-lg border-2 border-cyan-400/30 bg-black shadow-[0_0_60px_rgba(34,211,238,0.15)]"
+                            className="relative min-h-0 flex-1 overflow-hidden rounded-lg border-2 border-cyan-400/30 bg-[radial-gradient(circle_at_50%_45%,#0b1526_0%,#050810_62%,#02040a_100%)] shadow-[0_0_60px_rgba(34,211,238,0.15)]"
                         >
                             <canvas
                                 ref={canvasRef}
@@ -2157,6 +2309,19 @@ export default function Game() {
                             >
                                 <Package className="size-4" />
                             </button>
+                            <button
+                                type="button"
+                                onClick={() => {
+                                    sound.click();
+                                    setInvOpen(false);
+                                    setPaused(true);
+                                }}
+                                aria-label="Jeda"
+                                title="Jeda (Esc)"
+                                className={`absolute top-3 z-30 flex items-center justify-center rounded-lg border border-cyan-400/30 bg-slate-950/70 text-slate-200 backdrop-blur-md transition-all duration-200 hover:border-cyan-300 hover:bg-cyan-500/20 hover:text-white hover:shadow-[0_0_12px_rgba(34,211,238,0.4)] ${isTouch ? 'right-[10.4rem] size-11' : 'right-[8.25rem] size-9'}`}
+                            >
+                                <Pause className="size-4" />
+                            </button>
 
                             {invOpen && hud && phase !== 'title' && (
                                 <div className="absolute top-16 right-3 z-30 w-full max-w-xs rounded-xl border border-cyan-400/25 bg-slate-950/90 p-3 text-slate-100 shadow-[0_8px_32px_rgba(0,0,0,0.6)] backdrop-blur-md">
@@ -2348,9 +2513,21 @@ export default function Game() {
                                     </div>
 
                                     {/* Party panel (bottom-left, compact) */}
-                                    {!dialog && (
+                                    {!dialog && !mapBig && (
                                         <div
-                                            className={`pointer-events-none absolute left-[1.5%] flex flex-col gap-[0.4cqw] rounded-[0.7cqw] border border-white/10 bg-slate-950/55 px-[0.7cqw] py-[0.6cqw] backdrop-blur-sm ${isTouch ? 'bottom-[8.5rem]' : 'bottom-[2%]'}`}
+                                            onClick={
+                                                partyCompact
+                                                    ? () => {
+                                                          sound.click();
+                                                          setPartyOpen(true);
+                                                      }
+                                                    : undefined
+                                            }
+                                            className={`pointer-events-auto absolute left-[1.5%] flex rounded-[0.7cqw] border border-white/10 bg-slate-950/55 px-[0.7cqw] py-[0.6cqw] backdrop-blur-sm ${partyCompact ? 'cursor-pointer' : ''} ${
+                                                partyCompact
+                                                    ? 'bottom-[8.5rem] flex-row items-end gap-[0.55cqw]'
+                                                    : `flex-col gap-[0.4cqw] ${isTouch ? 'bottom-[8.5rem]' : 'bottom-[2%]'}`
+                                            }`}
                                         >
                                             {hud.party.map((m, i) => {
                                                 const isMe = netActive
@@ -2379,10 +2556,10 @@ export default function Game() {
                                                 return (
                                                     <div
                                                         key={m.name}
-                                                        className={`flex items-center gap-[0.45cqw] ${m.alive ? '' : 'opacity-45 grayscale'}`}
+                                                        className={`flex ${partyCompact ? 'flex-col items-center gap-[0.25cqw]' : 'items-center gap-[0.45cqw]'} ${m.alive ? '' : 'opacity-45 grayscale'}`}
                                                     >
                                                         <div
-                                                            className="size-[2.4cqw] shrink-0 overflow-hidden rounded-[0.35cqw] border"
+                                                            className={`shrink-0 overflow-hidden rounded-[0.35cqw] border ${partyCompact ? 'size-[2.3cqw]' : 'size-[2.4cqw]'}`}
                                                             style={{
                                                                 borderColor:
                                                                     m.color,
@@ -2415,55 +2592,94 @@ export default function Game() {
                                                                 </div>
                                                             )}
                                                         </div>
-                                                        <div className="w-[10cqw]">
-                                                            <div className="flex items-center gap-[0.35cqw]">
-                                                                <span
-                                                                    className="truncate font-bold"
-                                                                    style={{
-                                                                        fontSize:
-                                                                            '0.9cqw',
-                                                                        color: m.color,
-                                                                    }}
-                                                                >
-                                                                    {pname}
-                                                                </span>
-                                                                {isMe && (
-                                                                    <span
-                                                                        className="shrink-0 rounded-[0.2cqw] bg-cyan-400/90 px-[0.3cqw] font-pixel text-slate-950"
-                                                                        style={{
-                                                                            fontSize:
-                                                                                '0.55cqw',
-                                                                        }}
-                                                                    >
-                                                                        YOU
-                                                                    </span>
-                                                                )}
-                                                                <span
-                                                                    className="ml-auto shrink-0 font-mono text-slate-400"
-                                                                    style={{
-                                                                        fontSize:
-                                                                            '0.7cqw',
-                                                                    }}
-                                                                >
-                                                                    {m.role}
-                                                                </span>
-                                                            </div>
-                                                            <div className="mt-[0.2cqw] h-[0.45cqw] overflow-hidden rounded-full bg-black/60">
+                                                        {partyCompact ? (
+                                                            <div className="h-[0.4cqw] w-[2.3cqw] overflow-hidden rounded-full bg-black/70">
                                                                 <div
                                                                     className={`h-full rounded-full transition-all duration-200 ${
                                                                         isLowHp
-                                                                            ? 'animate-pulse bg-gradient-to-r from-red-600 to-rose-400'
-                                                                            : 'bg-gradient-to-r from-rose-500 to-pink-400'
+                                                                            ? 'animate-pulse bg-red-400'
+                                                                            : 'bg-emerald-400'
                                                                     }`}
                                                                     style={{
                                                                         width: `${hpPct * 100}%`,
                                                                     }}
                                                                 />
                                                             </div>
-                                                        </div>
+                                                        ) : (
+                                                            <div className="w-[10cqw]">
+                                                                <div className="flex items-center gap-[0.35cqw]">
+                                                                    <span
+                                                                        className="truncate font-bold"
+                                                                        style={{
+                                                                            fontSize:
+                                                                                '0.9cqw',
+                                                                            color: m.color,
+                                                                        }}
+                                                                    >
+                                                                        {pname}
+                                                                    </span>
+                                                                    {isMe && (
+                                                                        <span
+                                                                            className="shrink-0 rounded-[0.2cqw] bg-cyan-400/90 px-[0.3cqw] font-pixel text-slate-950"
+                                                                            style={{
+                                                                                fontSize:
+                                                                                    '0.55cqw',
+                                                                            }}
+                                                                        >
+                                                                            YOU
+                                                                        </span>
+                                                                    )}
+                                                                    <span
+                                                                        className="ml-auto shrink-0 font-mono text-slate-400"
+                                                                        style={{
+                                                                            fontSize:
+                                                                                '0.7cqw',
+                                                                        }}
+                                                                    >
+                                                                        {m.role}
+                                                                    </span>
+                                                                </div>
+                                                                <div className="mt-[0.2cqw] h-[0.45cqw] overflow-hidden rounded-full bg-black/60">
+                                                                    <div
+                                                                        className={`h-full rounded-full transition-all duration-200 ${
+                                                                            isLowHp
+                                                                                ? 'animate-pulse bg-gradient-to-r from-red-600 to-rose-400'
+                                                                                : 'bg-gradient-to-r from-rose-500 to-pink-400'
+                                                                        }`}
+                                                                        style={{
+                                                                            width: `${hpPct * 100}%`,
+                                                                        }}
+                                                                    />
+                                                                </div>
+                                                            </div>
+                                                        )}
                                                     </div>
                                                 );
                                             })}
+                                            {isTouch && (
+                                                <button
+                                                    type="button"
+                                                    onClick={() => {
+                                                        sound.click();
+                                                        setPartyOpen((v) => !v);
+                                                    }}
+                                                    aria-label={
+                                                        partyCompact
+                                                            ? 'Perluas panel party'
+                                                            : 'Ringkas panel party'
+                                                    }
+                                                    aria-expanded={
+                                                        !partyCompact
+                                                    }
+                                                    className={`absolute flex size-8 items-center justify-center rounded-full border border-cyan-300/40 bg-slate-950/95 text-cyan-200 shadow-[0_2px_8px_rgba(0,0,0,0.5)] active:scale-95 ${partyCompact ? '-top-10 right-0' : '-top-3 -right-3'}`}
+                                                >
+                                                    {partyCompact ? (
+                                                        <ChevronUp className="size-4" />
+                                                    ) : (
+                                                        <ChevronDown className="size-4" />
+                                                    )}
+                                                </button>
+                                            )}
                                         </div>
                                     )}
 
@@ -4198,6 +4414,277 @@ export default function Game() {
                             )}
                         </div>
                     </div>
+                    {/* Petunjuk kontekstual sekali per pemain */}
+                    <AnimatePresence>
+                        {tip && phase !== 'title' && !paused && (
+                            <motion.div
+                                key="game-tip"
+                                initial={{ opacity: 0, y: -8, scale: 0.98 }}
+                                animate={{ opacity: 1, y: 0, scale: 1 }}
+                                exit={{ opacity: 0, y: -6, scale: 0.99 }}
+                                transition={{ duration: 0.22, ease: 'easeOut' }}
+                                className="fixed top-[4.6rem] left-1/2 z-40 flex w-[min(92vw,30rem)] -translate-x-1/2 items-start gap-2 rounded-lg border border-cyan-400/35 bg-slate-950/92 px-3 py-2 text-cyan-100 shadow-[0_10px_30px_rgba(0,0,0,0.55)] backdrop-blur-md"
+                            >
+                                <Sparkles className="mt-0.5 size-3.5 shrink-0 text-cyan-300" />
+                                <p className="flex-1 font-mono text-[11px] leading-4">
+                                    {tip}
+                                </p>
+                                <button
+                                    type="button"
+                                    onClick={() => setTip(null)}
+                                    aria-label="Tutup petunjuk"
+                                    className="mt-0.5 shrink-0 rounded p-0.5 text-slate-400 transition-colors hover:bg-white/10 hover:text-white"
+                                >
+                                    <X className="size-3.5" />
+                                </button>
+                            </motion.div>
+                        )}
+                    </AnimatePresence>
+
+                    {/* Menu jeda: satu tempat untuk lanjut, ulang, audio, dan kontrol */}
+                    <AnimatePresence>
+                        {paused && phase !== 'title' && (
+                            <motion.div
+                                key="pause-overlay"
+                                role="dialog"
+                                aria-modal="true"
+                                aria-label="Jeda permainan"
+                                initial={{ opacity: 0 }}
+                                animate={{ opacity: 1 }}
+                                exit={{ opacity: 0 }}
+                                transition={{ duration: 0.16 }}
+                                onClick={() => setPaused(false)}
+                                className="fixed inset-0 z-50 flex items-center justify-center bg-[#020617]/80 p-4 backdrop-blur-sm"
+                            >
+                                <motion.div
+                                    initial={{ opacity: 0, y: 14, scale: 0.98 }}
+                                    animate={{
+                                        opacity: 1,
+                                        y: 0,
+                                        scale: 1,
+                                    }}
+                                    exit={{ opacity: 0, y: 8, scale: 0.99 }}
+                                    transition={{
+                                        type: 'spring',
+                                        visualDuration: 0.34,
+                                        bounce: 0.16,
+                                    }}
+                                    onClick={(e) => e.stopPropagation()}
+                                    className="relative flex max-h-[94dvh] w-full max-w-md flex-col gap-2.5 overflow-y-auto overscroll-contain rounded-2xl border border-cyan-400/25 bg-slate-950/95 p-3 shadow-[0_24px_70px_rgba(0,0,0,0.7)] sm:gap-4 sm:p-5 [@media(max-height:560px)]:grid [@media(max-height:560px)]:max-w-3xl [@media(max-height:560px)]:grid-cols-2 [@media(max-height:560px)]:items-start [@media(max-height:560px)]:gap-4"
+                                >
+                                    <div className="flex flex-col gap-2.5">
+                                        <div className="flex items-start justify-between gap-3">
+                                            <div>
+                                                <div className="font-pixel text-sm tracking-[0.18em] text-cyan-200">
+                                                    JEDA
+                                                </div>
+                                                <div className="mt-1 font-mono text-[10px] text-slate-400">
+                                                    {hud?.mapLabel ??
+                                                        'F3N Story'}{' '}
+                                                    &middot;{' '}
+                                                    {netActive
+                                                        ? 'Online'
+                                                        : 'Solo'}{' '}
+                                                    &middot;{' '}
+                                                    {isTouch
+                                                        ? 'ketuk Lanjut'
+                                                        : 'Esc untuk lanjut'}
+                                                </div>
+                                            </div>
+                                            <button
+                                                type="button"
+                                                onClick={() => setPaused(false)}
+                                                aria-label="Lanjut bermain"
+                                                className="flex size-8 shrink-0 items-center justify-center rounded-lg border border-white/10 text-slate-300 transition-colors hover:bg-white/10 hover:text-white"
+                                            >
+                                                <X className="size-4" />
+                                            </button>
+                                        </div>
+
+                                        <div className="grid grid-cols-2 gap-2">
+                                            <button
+                                                type="button"
+                                                autoFocus
+                                                onClick={() => {
+                                                    sound.click();
+                                                    setPaused(false);
+                                                }}
+                                                className="col-span-2 inline-flex items-center justify-center gap-2 rounded-xl bg-gradient-to-b from-cyan-300 to-cyan-500 px-4 py-2.5 font-pixel text-[10px] tracking-wider text-[#06202a] shadow-[0_3px_0_#0e7490] transition-all hover:brightness-110 active:translate-y-[1px] active:shadow-[0_2px_0_#0e7490]"
+                                            >
+                                                <Play className="size-4" />{' '}
+                                                LANJUT
+                                            </button>
+                                            <button
+                                                type="button"
+                                                onClick={() => {
+                                                    sound.click();
+                                                    setPaused(false);
+
+                                                    if (netActive) {
+                                                        backToLobby();
+                                                    } else {
+                                                        startSolo();
+                                                    }
+                                                }}
+                                                className="inline-flex items-center justify-center gap-2 rounded-xl border border-white/15 bg-white/[0.04] px-3 py-2 font-pixel text-[9px] tracking-wider text-slate-200 transition-colors hover:bg-white/10"
+                                            >
+                                                <RotateCcw className="size-3.5" />{' '}
+                                                {netActive
+                                                    ? 'KE LOBBY'
+                                                    : 'ULANG'}
+                                            </button>
+                                            <Link
+                                                href="/"
+                                                onClick={() => sound.click()}
+                                                className="inline-flex items-center justify-center gap-2 rounded-xl border border-white/15 bg-white/[0.04] px-3 py-2 font-pixel text-[9px] tracking-wider text-slate-200 transition-colors hover:bg-white/10"
+                                            >
+                                                <Home className="size-3.5" />{' '}
+                                                KELUAR
+                                            </Link>
+                                        </div>
+                                        <div>
+                                            <button
+                                                type="button"
+                                                onClick={() =>
+                                                    setControlsOpen((v) => !v)
+                                                }
+                                                aria-expanded={controlsOpen}
+                                                className="flex w-full items-center justify-between gap-2 rounded-lg border border-white/10 bg-white/[0.03] px-2.5 py-1.5 transition-colors hover:bg-white/[0.06]"
+                                            >
+                                                <span className="font-pixel text-[9px] tracking-wider text-slate-400">
+                                                    KONTROL
+                                                </span>
+                                                {controlsOpen ? (
+                                                    <ChevronUp className="size-3.5 text-slate-400" />
+                                                ) : (
+                                                    <ChevronDown className="size-3.5 text-slate-400" />
+                                                )}
+                                            </button>
+                                            {controlsOpen && (
+                                                <div className="mt-1.5 grid grid-cols-2 gap-1.5">
+                                                    {CONTROLS.map((c) => (
+                                                        <div
+                                                            key={c.key}
+                                                            className="flex items-center justify-between gap-2 rounded-md border border-white/10 bg-white/[0.03] px-2 py-1"
+                                                        >
+                                                            <span className="font-mono text-[10px] text-slate-400">
+                                                                {c.key}
+                                                            </span>
+                                                            <span className="font-pixel text-[8px] text-cyan-100">
+                                                                {c.p1}
+                                                            </span>
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                            )}
+                                        </div>
+                                    </div>
+
+                                    <div className="flex flex-col gap-2.5">
+                                        <div className="rounded-xl border border-white/10 bg-white/[0.03] p-3">
+                                            <div className="mb-2.5 font-pixel text-[9px] tracking-wider text-slate-400">
+                                                PENGATURAN
+                                            </div>
+                                            <label className="flex items-center gap-3">
+                                                <Music className="size-4 shrink-0 text-cyan-300" />
+                                                <input
+                                                    type="range"
+                                                    min={0}
+                                                    max={100}
+                                                    value={musicVol}
+                                                    onChange={(e) => {
+                                                        const v = Number(
+                                                            e.target.value,
+                                                        );
+                                                        setMusicVol(v);
+                                                        sound.setMusicVolume(
+                                                            v / 100,
+                                                        );
+                                                    }}
+                                                    aria-label="Volume musik"
+                                                    className="h-1.5 flex-1 accent-cyan-400"
+                                                />
+                                                <span className="w-9 text-right font-mono text-[10px] text-slate-400">
+                                                    {musicVol}%
+                                                </span>
+                                            </label>
+                                            <label className="mt-3 flex items-center gap-3">
+                                                <Volume2 className="size-4 shrink-0 text-cyan-300" />
+                                                <input
+                                                    type="range"
+                                                    min={0}
+                                                    max={100}
+                                                    value={sfxVol}
+                                                    onChange={(e) => {
+                                                        const v = Number(
+                                                            e.target.value,
+                                                        );
+                                                        setSfxVol(v);
+                                                        sound.setSfxVolume(
+                                                            v / 100,
+                                                        );
+                                                    }}
+                                                    onPointerUp={() =>
+                                                        sound.click()
+                                                    }
+                                                    aria-label="Volume efek suara"
+                                                    className="h-1.5 flex-1 accent-cyan-400"
+                                                />
+                                                <span className="w-9 text-right font-mono text-[10px] text-slate-400">
+                                                    {sfxVol}%
+                                                </span>
+                                            </label>
+                                            <div className="mt-3 flex items-center justify-between gap-3">
+                                                <span className="flex items-center gap-2 font-mono text-[11px] text-slate-300">
+                                                    <Wind className="size-4 text-cyan-300" />
+                                                    Getar kamera
+                                                </span>
+                                                <button
+                                                    type="button"
+                                                    role="switch"
+                                                    aria-checked={shakeOn}
+                                                    aria-label="Getar kamera"
+                                                    onClick={() =>
+                                                        setShakeOn((v) => !v)
+                                                    }
+                                                    className={`relative h-6 w-11 shrink-0 rounded-full border transition-colors ${shakeOn ? 'border-cyan-300/60 bg-cyan-400/30' : 'border-white/15 bg-white/5'}`}
+                                                >
+                                                    <span
+                                                        className={`absolute top-0.5 size-4 rounded-full bg-white shadow transition-all ${shakeOn ? 'left-[1.4rem]' : 'left-0.5'}`}
+                                                    />
+                                                </button>
+                                            </div>
+                                            <div className="mt-2 flex items-center justify-between gap-3">
+                                                <span className="flex items-center gap-2 font-mono text-[11px] text-slate-300">
+                                                    {isFullscreen ? (
+                                                        <Minimize2 className="size-4 text-cyan-300" />
+                                                    ) : (
+                                                        <Maximize2 className="size-4 text-cyan-300" />
+                                                    )}
+                                                    Layar penuh
+                                                </span>
+                                                <button
+                                                    type="button"
+                                                    onClick={toggleFullscreen}
+                                                    className="rounded-md border border-white/15 bg-white/[0.04] px-2.5 py-1 font-mono text-[10px] text-slate-200 transition-colors hover:bg-white/10"
+                                                >
+                                                    {isFullscreen
+                                                        ? 'KELUAR'
+                                                        : 'AKTIFKAN'}
+                                                </button>
+                                            </div>
+                                        </div>
+
+                                        <p className="hidden text-center font-mono text-[10px] text-slate-500 sm:block">
+                                            Progres sesi ini tidak disimpan —
+                                            keluar berarti mulai dari awal.
+                                        </p>
+                                    </div>
+                                </motion.div>
+                            </motion.div>
+                        )}
+                    </AnimatePresence>
+
                     {/* Game wajib landscape di perangkat sentuh */}
                     {isTouch && isPortrait && (
                         <div className="fixed inset-0 z-[100] flex flex-col items-center justify-center gap-6 bg-[#070b16] px-8 text-center">
