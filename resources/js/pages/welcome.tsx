@@ -1,5 +1,12 @@
 import { Head, Link } from '@inertiajs/react';
-import { motion, useMotionValue, useSpring } from 'framer-motion';
+import type { Variants } from 'framer-motion';
+import {
+    AnimatePresence,
+    motion,
+    useMotionValue,
+    useReducedMotion,
+    useSpring,
+} from 'framer-motion';
 import LiquidGlass from 'liquid-glass-react';
 import type { LucideIcon } from 'lucide-react';
 import {
@@ -10,7 +17,6 @@ import {
     Github,
     Instagram,
     Mail,
-    Menu,
     MessageCircle,
     Monitor,
     Moon,
@@ -842,10 +848,12 @@ function GlassSwitch<T extends string>({
         const active = optionValue === value;
 
         return (
-            <button
+            <motion.button
                 key={optionValue}
                 type="button"
                 onClick={() => onChange(optionValue)}
+                whileTap={{ scale: 0.92 }}
+                transition={{ type: 'spring', stiffness: 520, damping: 30 }}
                 className={`relative rounded-full px-3 transition-colors outline-none focus-visible:ring-2 focus-visible:ring-cyan-400 ${
                     active
                         ? 'text-slate-900 dark:text-white'
@@ -860,8 +868,9 @@ function GlassSwitch<T extends string>({
                             style={{ inset: '-7px -5px' }}
                             transition={{
                                 type: 'spring',
-                                stiffness: 380,
-                                damping: 32,
+                                stiffness: 430,
+                                damping: 34,
+                                mass: 0.7,
                             }}
                         >
                             <LiquidGlass
@@ -887,8 +896,9 @@ function GlassSwitch<T extends string>({
                             style={{ inset: '-7px -5px' }}
                             transition={{
                                 type: 'spring',
-                                stiffness: 380,
-                                damping: 32,
+                                stiffness: 430,
+                                damping: 34,
+                                mass: 0.7,
                             }}
                         ></motion.span>
                     ))}
@@ -896,7 +906,7 @@ function GlassSwitch<T extends string>({
                     {Icon && <Icon className="size-3.5" />}
                     {label}
                 </span>
-            </button>
+            </motion.button>
         );
     });
 
@@ -1104,6 +1114,46 @@ function MemberModal({
     );
 }
 
+/** Panel menu mobile: turun lembut, item di dalamnya menyusul satu-satu. */
+const menuVariants = (reduceMotion: boolean | null): Variants => ({
+    hidden: { opacity: 0, y: -14, scaleY: 0.94 },
+    show: {
+        opacity: 1,
+        y: 0,
+        scaleY: 1,
+        transition: reduceMotion
+            ? { duration: 0 }
+            : {
+                  type: 'spring',
+                  stiffness: 420,
+                  damping: 34,
+                  mass: 0.7,
+                  staggerChildren: 0.045,
+                  delayChildren: 0.05,
+              },
+    },
+    exit: {
+        opacity: 0,
+        y: -10,
+        scaleY: 0.97,
+        transition: reduceMotion
+            ? { duration: 0 }
+            : { duration: 0.16, ease: 'easeIn' },
+    },
+});
+
+const menuItemVariants = (reduceMotion: boolean | null): Variants => ({
+    hidden: { opacity: 0, y: -8 },
+    show: {
+        opacity: 1,
+        y: 0,
+        transition: reduceMotion
+            ? { duration: 0 }
+            : { type: 'spring', stiffness: 460, damping: 34, mass: 0.6 },
+    },
+    exit: { opacity: 0, transition: { duration: 0.08 } },
+});
+
 export default function Welcome() {
     const { language, setLanguage } = useLanguage();
     const { resolvedAppearance } = useAppearance();
@@ -1117,6 +1167,7 @@ export default function Welcome() {
     );
     const { isLoading, lineIndex } = useLoadingSequence(currentLoadingLines);
     const [menuOpen, setMenuOpen] = useState(false);
+    const reduceMotion = useReducedMotion();
     const [activeMember, setActiveMember] = useState<TeamMember | null>(null);
     const sectionIds = useMemo(
         () =>
@@ -1223,56 +1274,121 @@ export default function Welcome() {
                             {text.contact} <ArrowRight className="size-4" />
                         </a>
 
-                        <button
+                        <motion.button
                             type="button"
                             className="pixel-corners-sm flex size-11 items-center justify-center rounded-md border border-slate-300/80 bg-white/80 text-slate-900 xl:hidden dark:border-white/10 dark:text-white"
                             onClick={() => setMenuOpen((open) => !open)}
                             aria-label="Toggle navigation"
                             aria-expanded={menuOpen}
                             aria-controls="mobile-navigation"
+                            whileTap={{ scale: 0.9 }}
+                            transition={{
+                                type: 'spring',
+                                stiffness: 520,
+                                damping: 28,
+                            }}
                         >
-                            {menuOpen ? (
-                                <X className="size-5" />
-                            ) : (
-                                <Menu className="size-5" />
-                            )}
-                        </button>
+                            <span className="relative block size-5">
+                                <motion.span
+                                    className="absolute left-0 block h-0.5 w-5 rounded-full bg-current"
+                                    animate={
+                                        menuOpen
+                                            ? { top: 9, rotate: 45 }
+                                            : { top: 4, rotate: 0 }
+                                    }
+                                    transition={
+                                        reduceMotion
+                                            ? { duration: 0 }
+                                            : {
+                                                  type: 'spring',
+                                                  stiffness: 520,
+                                                  damping: 30,
+                                              }
+                                    }
+                                />
+                                <motion.span
+                                    className="absolute top-9 left-0 block h-0.5 w-5 rounded-full bg-current"
+                                    animate={
+                                        menuOpen
+                                            ? { opacity: 0, scaleX: 0.2 }
+                                            : { opacity: 1, scaleX: 1 }
+                                    }
+                                    transition={
+                                        reduceMotion
+                                            ? { duration: 0 }
+                                            : {
+                                                  type: 'spring',
+                                                  stiffness: 520,
+                                                  damping: 30,
+                                              }
+                                    }
+                                />
+                                <motion.span
+                                    className="absolute left-0 block h-0.5 w-5 rounded-full bg-current"
+                                    animate={
+                                        menuOpen
+                                            ? { top: 9, rotate: -45 }
+                                            : { top: 14, rotate: 0 }
+                                    }
+                                    transition={
+                                        reduceMotion
+                                            ? { duration: 0 }
+                                            : {
+                                                  type: 'spring',
+                                                  stiffness: 520,
+                                                  damping: 30,
+                                              }
+                                    }
+                                />
+                            </span>
+                        </motion.button>
                     </nav>
 
-                    {menuOpen && (
-                        <motion.div
-                            id="mobile-navigation"
-                            className="glass mx-auto mt-2 flex max-h-[calc(100dvh-7rem)] max-w-7xl flex-col gap-2 overflow-y-auto overscroll-contain p-3 xl:hidden dark:border dark:border-white/10 dark:bg-[#111827]/95"
-                            initial={{ opacity: 0, y: -8 }}
-                            animate={{ opacity: 1, y: 0 }}
-                        >
-                            {navItems.map((item) => (
-                                <a
-                                    key={item.href}
-                                    href={item.href}
-                                    aria-current={
-                                        activeSection === item.href
-                                            ? 'location'
-                                            : undefined
-                                    }
-                                    className={`rounded-md px-3 py-2 text-sm transition ${
-                                        activeSection === item.href
-                                            ? 'bg-blue-500/15 font-semibold text-blue-800 dark:bg-blue-400/15 dark:text-blue-100'
-                                            : 'text-slate-700 hover:bg-slate-100 dark:text-slate-200 dark:hover:bg-white/5'
-                                    }`}
-                                    onClick={() => setMenuOpen(false)}
+                    <AnimatePresence>
+                        {menuOpen && (
+                            <motion.div
+                                id="mobile-navigation"
+                                className="glass mx-auto mt-2 flex max-h-[calc(100dvh-7rem)] max-w-7xl origin-top flex-col gap-2 overflow-y-auto overscroll-contain p-3 xl:hidden dark:border dark:border-white/10 dark:bg-[#111827]/95"
+                                variants={menuVariants(reduceMotion)}
+                                initial="hidden"
+                                animate="show"
+                                exit="exit"
+                            >
+                                {navItems.map((item) => (
+                                    <motion.a
+                                        key={item.href}
+                                        href={item.href}
+                                        variants={menuItemVariants(
+                                            reduceMotion,
+                                        )}
+                                        aria-current={
+                                            activeSection === item.href
+                                                ? 'location'
+                                                : undefined
+                                        }
+                                        whileTap={{ scale: 0.98 }}
+                                        className={`rounded-md px-3 py-2 text-sm transition-colors ${
+                                            activeSection === item.href
+                                                ? 'bg-blue-500/15 font-semibold text-blue-800 dark:bg-blue-400/15 dark:text-blue-100'
+                                                : 'text-slate-700 hover:bg-slate-100 dark:text-slate-200 dark:hover:bg-white/5'
+                                        }`}
+                                        onClick={() => setMenuOpen(false)}
+                                    >
+                                        {item.label[language]}
+                                    </motion.a>
+                                ))}
+                                <motion.div
+                                    className="pt-2"
+                                    variants={menuItemVariants(reduceMotion)}
                                 >
-                                    {item.label[language]}
-                                </a>
-                            ))}
-                            <div className="pt-2">
-                                <PreferenceControls
-                                    language={language}
-                                    setLanguage={setLanguage}
-                                />
-                            </div>
-                        </motion.div>
-                    )}
+                                    <PreferenceControls
+                                        language={language}
+                                        setLanguage={setLanguage}
+                                    />
+                                </motion.div>
+                            </motion.div>
+                        )}
+                    </AnimatePresence>
                 </header>
 
                 <section className="relative flex min-h-screen items-center overflow-hidden px-4 pt-32 pb-20">
