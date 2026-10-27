@@ -764,6 +764,7 @@ function GlassSwitch<T extends string>({
     mouseContainer?: RefObject<HTMLElement | null> | null;
 }) {
     const liquid = useLiquidGlassSupport();
+    const reduceMotion = useReducedMotion();
     // Penanda unik per switch: dua switch bisa hidup bersamaan (navbar +
     // menu mobile), layoutId kembar membuat pil aktif "melompat" antar panel.
     const layoutKey = useId();
@@ -780,52 +781,27 @@ function GlassSwitch<T extends string>({
                 transition={{ type: 'spring', stiffness: 520, damping: 30 }}
                 className={`relative rounded-full px-3 transition-colors outline-none focus-visible:ring-2 focus-visible:ring-cyan-400 ${
                     active
-                        ? 'text-slate-900 dark:text-white'
-                        : 'text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white'
+                        ? 'font-bold text-slate-950 dark:text-slate-900'
+                        : 'text-slate-600 hover:text-slate-950 dark:text-slate-400 dark:hover:text-white'
                 }`}
             >
-                {active &&
-                    (liquid ? (
-                        <motion.span
-                            layoutId={`glass-switch-${id}-${layoutKey}`}
-                            className="absolute"
-                            style={{ inset: '-7px -5px' }}
-                            transition={{
-                                type: 'spring',
-                                stiffness: 430,
-                                damping: 34,
-                                mass: 0.7,
-                            }}
-                        >
-                            <LiquidGlass
-                                cornerRadius={999}
-                                padding="0px"
-                                displacementScale={34}
-                                blurAmount={0.09}
-                                saturation={160}
-                                aberrationIntensity={1.2}
-                                elasticity={0.3}
-                                overLight={overLight}
-                                mouseContainer={mouseContainer}
-                                className="block size-full"
-                                style={{ width: '100%', height: '100%' }}
-                            >
-                                <span className="block size-full" />
-                            </LiquidGlass>
-                        </motion.span>
-                    ) : (
-                        <motion.span
-                            layoutId={`glass-switch-${id}-${layoutKey}`}
-                            className="absolute rounded-full border border-white/80 bg-white/60 shadow-[inset_0_2px_4px_rgba(255,255,255,.9),inset_0_-3px_6px_rgba(15,23,42,.12),0_8px_20px_rgba(2,6,23,.25)] backdrop-blur-xl dark:border-white/20 dark:bg-white/15"
-                            style={{ inset: '-7px -5px' }}
-                            transition={{
-                                type: 'spring',
-                                stiffness: 430,
-                                damping: 34,
-                                mass: 0.7,
-                            }}
-                        ></motion.span>
-                    ))}
+                {active && (
+                    <motion.span
+                        layoutId={`glass-switch-${id}-${layoutKey}`}
+                        className="switch-pill absolute"
+                        style={{ inset: '-4px -5px' }}
+                        transition={
+                            reduceMotion
+                                ? { duration: 0 }
+                                : {
+                                      type: 'spring',
+                                      stiffness: 430,
+                                      damping: 34,
+                                      mass: 0.7,
+                                  }
+                        }
+                    />
+                )}
                 <span className="relative flex min-h-8 items-center gap-1.5 text-xs font-semibold">
                     {Icon && <Icon className="size-3.5" />}
                     {label}
