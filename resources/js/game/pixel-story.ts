@@ -696,6 +696,7 @@ export interface GameCallbacks {
     onPhase: (p: Phase) => void;
     onStory: (chapter: string, lines: DialogueLine[] | null) => void;
     onSnap?: (s: Snapshot) => void;
+    onMap?: (big: boolean) => void;
 }
 
 interface MapTheme {
@@ -1203,8 +1204,12 @@ export class PixelStoryGame {
     private snapT = 0;
     private snapQ = 0;
     private lastQ = 0;
-    /** Ukuran minimap: 0 = sembunyi, 1 = kecil, 2 = besar. */
-    private mapView: 0 | 1 | 2 = 1;
+    /** Ukuran minimap: 1 = mini permanen, 2 = panel besar. */
+    private mapView: 1 | 2 = 1;
+    private touchUi =
+        typeof window !== 'undefined' &&
+        typeof window.matchMedia === 'function' &&
+        window.matchMedia('(pointer: coarse)').matches;
     private skipVotes = new Set<number>();
     private skipSeen = 0;
     private skipTotal = 1;
@@ -1329,6 +1334,8 @@ export class PixelStoryGame {
         this.souls = 0;
         this.waveIndex = -1;
         this.storyIndex = 0;
+        this.mapView = 1;
+        this.cb.onMap?.(false);
         this.setMap('class');
         sound.startMusic();
         this.playStoryBeat(0);
@@ -4942,7 +4949,7 @@ export class PixelStoryGame {
             c.textAlign = 'left';
         }
 
-        if (this.mapView !== 0 && this.phase !== 'title') {
+        if (this.phase !== 'title') {
             this.drawMinimap();
         }
 
@@ -4977,9 +4984,15 @@ export class PixelStoryGame {
         }
     }
 
-    /** Tombol M: kecil → besar → sembunyi. */
+    /** Tombol peta: mini map selalu tampil, tombol hanya besar/kecil. */
     toggleMinimap(): void {
-        this.mapView = ((this.mapView + 1) % 3) as 0 | 1 | 2;
+        this.mapView = this.mapView === 2 ? 1 : 2;
+        this.cb.onMap?.(this.mapView === 2);
+    }
+
+    /** Aktifkan petunjuk khusus layar sentuh. */
+    setTouchUi(on: boolean): void {
+        this.touchUi = on;
     }
 
     /** Nama map untuk label. */
@@ -5055,14 +5068,11 @@ export class PixelStoryGame {
         const sy = mh / WORLD_H;
         const mx = big ? Math.round((VIEW_W - mw) / 2) : VIEW_W - mw - 8;
         const headH = big ? 20 : 0;
-        // Fase roam: peta kecil turun ke kanan bawah supaya menutupnya yang
-        // justru membuat pintu & hero di area atas jadi tidak terlihat.
-        const my =
-            big || this.storyFromRoam
-                ? Math.round((VIEW_H - mh - headH) / 2) + headH
-                : this.phase === 'roam'
-                  ? VIEW_H - mh - 8
-                  : 8;
+        // Mini map permanen di kanan bawah: tidak menutupi pintu, HUD, dan
+        // tombol aksi bawah.
+        const my = big
+            ? Math.round((VIEW_H - mh - headH) / 2) + headH
+            : VIEW_H - mh - 8;
         const lp = this.localPlayer();
 
         c.save();
@@ -5285,7 +5295,13 @@ export class PixelStoryGame {
             c.fillStyle = 'rgba(148,163,184,0.8)';
             c.font = '6px monospace';
             c.textAlign = 'center';
-            c.fillText('tekan M untuk menutup', VIEW_W / 2, my + mh + 10);
+            c.fillText(
+                this.touchUi
+                    ? 'ketuk PETA untuk menutup'
+                    : 'tekan M untuk menutup',
+                VIEW_W / 2,
+                my + mh + 10,
+            );
             c.textAlign = 'left';
         }
 

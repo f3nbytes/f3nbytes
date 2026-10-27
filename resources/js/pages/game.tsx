@@ -681,6 +681,10 @@ export default function Game() {
     );
 
     useEffect(() => {
+        gameRef.current?.setTouchUi(isTouch);
+    }, [isTouch]);
+
+    useEffect(() => {
         if (typeof window === 'undefined') {
             return;
         }
@@ -796,7 +800,12 @@ export default function Game() {
             onHud: (h) => setHud(h),
             onPhase: (p) => {
                 setPhase(p);
+
+                if (p === 'title') {
+                    setMapBig(false);
+                }
             },
+            onMap: (big) => setMapBig(big),
             onStory: (chapter, lines) => {
                 setDialog(lines ? { chapter, lines } : null);
             },
@@ -1814,6 +1823,7 @@ export default function Game() {
     const [showHud, setShowHud] = useState(true);
     const [questOpen, setQuestOpen] = useState(true);
     const [invOpen, setInvOpen] = useState(false);
+    const [mapBig, setMapBig] = useState(false);
     const wrapRef = useRef<HTMLDivElement | null>(null);
     const [viewBox, setViewBox] = useState({ l: 0, t: 0, w: 480, h: 270 });
 
@@ -1984,16 +1994,14 @@ export default function Game() {
                                     phase === 'quest' ||
                                     phase === 'roam' ||
                                     phase === 'combat') && (
-                                    <div
-                                        className={`absolute right-2 z-30 flex flex-col items-end gap-1.5 select-none ${phase === 'combat' ? 'bottom-24' : 'bottom-3'}`}
-                                    >
+                                    <div className="absolute right-2 bottom-30 z-30 flex flex-col items-end gap-1.5 select-none">
                                         {(phase === 'roam' ||
                                             phase === 'quest' ||
                                             phase === 'combat') && (
                                             <div className="flex items-center gap-1.5">
                                                 <TouchActionButton
                                                     label="PETA"
-                                                    ariaLabel="Perbesar peta"
+                                                    ariaLabel="Perbesar atau perkecil peta"
                                                     color="#22d3ee"
                                                     icon={
                                                         <MapIcon className="size-5" />
@@ -2002,32 +2010,36 @@ export default function Game() {
                                                         gameRef.current?.toggleMinimap()
                                                     }
                                                 />
-                                                <TouchActionButton
-                                                    label="LOMPAT"
-                                                    ariaLabel="Lompat"
-                                                    color="#a78bfa"
-                                                    icon={
-                                                        <ArrowUp className="size-5" />
-                                                    }
-                                                    onPress={() =>
-                                                        doAction('jmp')
-                                                    }
-                                                />
-                                                <TouchActionButton
-                                                    label="E"
-                                                    ariaLabel="Interaksi"
-                                                    color="#4ade80"
-                                                    size="lg"
-                                                    icon={
-                                                        <Compass className="size-6" />
-                                                    }
-                                                    onPress={() =>
-                                                        doAction('itr')
-                                                    }
-                                                />
+                                                {!mapBig && (
+                                                    <>
+                                                        <TouchActionButton
+                                                            label="LOMPAT"
+                                                            ariaLabel="Lompat"
+                                                            color="#a78bfa"
+                                                            icon={
+                                                                <ArrowUp className="size-5" />
+                                                            }
+                                                            onPress={() =>
+                                                                doAction('jmp')
+                                                            }
+                                                        />
+                                                        <TouchActionButton
+                                                            label="E"
+                                                            ariaLabel="Interaksi"
+                                                            color="#4ade80"
+                                                            size="lg"
+                                                            icon={
+                                                                <Compass className="size-6" />
+                                                            }
+                                                            onPress={() =>
+                                                                doAction('itr')
+                                                            }
+                                                        />
+                                                    </>
+                                                )}
                                             </div>
                                         )}
-                                        {phase === 'combat' && (
+                                        {phase === 'combat' && !mapBig && (
                                             <div className="flex items-center gap-1.5">
                                                 <TouchActionButton
                                                     label="SKILL"
