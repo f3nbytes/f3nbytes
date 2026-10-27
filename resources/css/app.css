@@ -203,6 +203,65 @@ html:not(.dark) .glass {
 }
 
 /*
+ * Kilau tipis yang menyapu panel menu sekali saat dibuka — kesan kaca
+ * cair tanpa animasi filter yang berat (cukup transform + opacity).
+ */
+@keyframes glass-sheen {
+    0% {
+        transform: translateX(-130%) skewX(-14deg);
+        opacity: 0;
+    }
+    18% {
+        opacity: 0.55;
+    }
+    100% {
+        transform: translateX(130%) skewX(-14deg);
+        opacity: 0;
+    }
+}
+
+.glass-sheen {
+    position: relative;
+    /* Panel bergerak; blur lebih tipis menjaga animasi tetap 60fps. */
+    -webkit-backdrop-filter: blur(24px) saturate(1.9);
+    backdrop-filter: blur(24px) saturate(1.9);
+}
+
+/* Kalahkan spesifisitas `html:not(.dark) .glass` di tema terang. */
+html:not(.dark) .glass.glass-sheen {
+    -webkit-backdrop-filter: blur(24px) saturate(1.9);
+    backdrop-filter: blur(24px) saturate(1.9);
+    /* Veil tipis menutup teks hero di belakang panel tanpa blur berat. */
+    background-color: rgba(255, 255, 255, 0.34);
+}
+
+.glass-sheen::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    left: 0;
+    width: 40%;
+    pointer-events: none;
+    background: linear-gradient(
+        90deg,
+        transparent,
+        rgba(255, 255, 255, 0.9),
+        transparent
+    );
+    border-radius: inherit;
+    mix-blend-mode: overlay;
+    animation: glass-sheen 0.95s cubic-bezier(0.22, 1, 0.36, 1) 60ms both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .glass-sheen::after {
+        animation: none;
+        opacity: 0;
+    }
+}
+
+/*
  * `liquid-glass-react` menaruh lapisan dekorasinya sebagai sibling biasa
  * (position: relative). Akibatnya host ikut melebar sampai beberapa kali
  * lebar tombol dan mendorong item navbar lain keluar layar.

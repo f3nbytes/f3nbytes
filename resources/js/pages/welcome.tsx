@@ -1042,55 +1042,48 @@ function MemberModal({
 const menuVariants = (reduceMotion: boolean | null): Variants => ({
     hidden: {
         opacity: 0,
-        y: -22,
-        scaleY: 0.95,
-        rotateX: -7,
-        filter: 'blur(10px)',
+        y: -18,
+        scale: 0.97,
     },
     show: {
         opacity: 1,
         y: 0,
-        scaleY: 1,
-        rotateX: 0,
-        filter: 'blur(0px)',
+        scale: 1,
         transition: reduceMotion
             ? { duration: 0 }
             : {
                   type: 'spring',
-                  stiffness: 175,
-                  damping: 23,
-                  mass: 1.1,
-                  staggerChildren: 0.055,
-                  delayChildren: 0.14,
+                  visualDuration: 0.5,
+                  bounce: 0.26,
+                  staggerChildren: 0.05,
+                  delayChildren: 0.1,
               },
     },
     exit: {
         opacity: 0,
-        y: -14,
-        scaleY: 0.98,
-        rotateX: -4,
-        filter: 'blur(8px)',
+        y: -10,
+        scale: 0.99,
         transition: reduceMotion
             ? { duration: 0 }
-            : { duration: 0.36, ease: 'easeInOut' },
+            : { duration: 0.3, ease: 'easeInOut' },
     },
 });
 
 const menuItemVariants = (reduceMotion: boolean | null): Variants => ({
-    hidden: { opacity: 0, y: -10 },
+    hidden: { opacity: 0, y: -8 },
     show: {
         opacity: 1,
         y: 0,
         transition: reduceMotion
             ? { duration: 0 }
-            : { type: 'spring', stiffness: 260, damping: 24, mass: 1 },
+            : { type: 'spring', visualDuration: 0.36, bounce: 0.14 },
     },
     exit: {
         opacity: 0,
-        y: -6,
+        y: -4,
         transition: reduceMotion
             ? { duration: 0 }
-            : { duration: 0.18, ease: 'easeInOut' },
+            : { duration: 0.16, ease: 'easeInOut' },
     },
 });
 
@@ -1206,7 +1199,7 @@ export default function Welcome() {
 
                         <motion.button
                             type="button"
-                            className={`pixel-corners-sm flex size-11 items-center justify-center rounded-md border transition-colors duration-300 xl:hidden ${
+                            className={`pixel-corners-sm relative flex size-11 items-center justify-center overflow-hidden rounded-md border transition-colors duration-300 xl:hidden ${
                                 menuOpen
                                     ? 'border-slate-900 bg-slate-900 text-white dark:border-white dark:bg-white dark:text-slate-900'
                                     : 'border-slate-300/80 bg-white/80 text-slate-900 hover:bg-white dark:border-white/10 dark:bg-white/5 dark:text-white dark:hover:bg-white/10'
@@ -1216,72 +1209,90 @@ export default function Welcome() {
                             aria-expanded={menuOpen}
                             aria-controls="mobile-navigation"
                             whileHover={{ scale: 1.04 }}
-                            whileTap={{ scale: 0.94 }}
-                            transition={{
-                                type: 'spring',
-                                stiffness: 300,
-                                damping: 24,
-                                mass: 0.8,
-                            }}
+                            whileTap={{ scale: 0.93 }}
+                            transition={
+                                reduceMotion
+                                    ? { duration: 0 }
+                                    : {
+                                          type: 'spring',
+                                          visualDuration: 0.34,
+                                          bounce: 0.28,
+                                      }
+                            }
                         >
+                            <motion.span
+                                aria-hidden="true"
+                                className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_50%_30%,rgba(255,255,255,0.5),transparent_62%)] dark:bg-[radial-gradient(circle_at_50%_30%,rgba(15,23,42,0.16),transparent_62%)]"
+                                initial={false}
+                                animate={{
+                                    opacity: menuOpen ? 1 : 0,
+                                    scale: menuOpen ? 1.15 : 0.8,
+                                }}
+                                transition={
+                                    reduceMotion
+                                        ? { duration: 0 }
+                                        : {
+                                              type: 'spring',
+                                              visualDuration: 0.45,
+                                              bounce: 0.22,
+                                          }
+                                }
+                            />
                             <span
                                 aria-hidden="true"
                                 className="relative block size-5"
                             >
                                 <motion.span
-                                    className="absolute left-0 block h-0.5 w-5 rounded-full bg-current"
+                                    className="absolute top-0 left-0 block h-0.5 w-5 origin-center rounded-full bg-current"
                                     initial={false}
                                     animate={
                                         menuOpen
-                                            ? { top: 9, rotate: 45 }
-                                            : { top: 4, rotate: 0 }
+                                            ? { y: 9, rotate: 45 }
+                                            : { y: 4, rotate: 0 }
                                     }
                                     transition={
                                         reduceMotion
                                             ? { duration: 0 }
                                             : {
                                                   type: 'spring',
-                                                  stiffness: 340,
-                                                  damping: 24,
-                                                  mass: 0.9,
+                                                  visualDuration: 0.4,
+                                                  bounce: 0.3,
                                               }
                                     }
                                 />
                                 <motion.span
-                                    className="absolute top-[9px] left-0 block h-0.5 w-5 origin-center rounded-full bg-current"
+                                    className="absolute top-0 left-0 block h-0.5 w-5 origin-center rounded-full bg-current"
                                     initial={false}
                                     animate={
                                         menuOpen
-                                            ? { opacity: 0, scaleX: 0.2 }
-                                            : { opacity: 1, scaleX: 1 }
+                                            ? { y: 9, opacity: 0, scaleX: 0.15 }
+                                            : { y: 9, opacity: 1, scaleX: 1 }
                                     }
                                     transition={
                                         reduceMotion
                                             ? { duration: 0 }
                                             : {
                                                   type: 'spring',
-                                                  stiffness: 340,
-                                                  damping: 24,
-                                                  mass: 0.9,
+                                                  visualDuration: 0.4,
+                                                  bounce: 0.3,
                                               }
                                     }
                                 />
                                 <motion.span
-                                    className="absolute left-0 block h-0.5 w-5 rounded-full bg-current"
+                                    className="absolute top-0 left-0 block h-0.5 w-5 origin-center rounded-full bg-current"
                                     initial={false}
                                     animate={
                                         menuOpen
-                                            ? { top: 9, rotate: -45 }
-                                            : { top: 14, rotate: 0 }
+                                            ? { y: 9, rotate: -45 }
+                                            : { y: 14, rotate: 0 }
                                     }
                                     transition={
                                         reduceMotion
                                             ? { duration: 0 }
                                             : {
                                                   type: 'spring',
-                                                  stiffness: 340,
-                                                  damping: 24,
-                                                  mass: 0.9,
+                                                  visualDuration: 0.4,
+                                                  bounce: 0.3,
                                               }
                                     }
                                 />
@@ -1293,7 +1304,8 @@ export default function Welcome() {
                         {menuOpen && (
                             <motion.div
                                 id="mobile-navigation"
-                                className="glass mx-auto mt-2 flex max-h-[calc(100dvh-7rem)] max-w-7xl origin-top flex-col gap-2 overflow-y-auto overscroll-contain p-3 xl:hidden dark:border dark:border-white/10 dark:bg-[#111827]/95"
+                                className="glass glass-sheen mx-auto mt-2 flex max-h-[calc(100dvh-7rem)] max-w-7xl origin-top flex-col gap-2 overflow-y-auto overscroll-contain p-3 xl:hidden dark:border dark:border-white/10 dark:bg-[#111827]/95"
+                                style={{ willChange: 'transform, opacity' }}
                                 variants={menuVariants(reduceMotion)}
                                 initial="hidden"
                                 animate="show"
