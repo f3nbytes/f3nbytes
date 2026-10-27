@@ -229,7 +229,7 @@ html:not(.dark) .glass {
  * lapisan itu membuat switch tema/bahasa jadi balok abu gelap, sedangkan
  * .glass kita sudah memberi warna kaca biru muda.
  */
-html:not(.dark) .liquid-glass-host > .bg-black {
+html:not(.dark) .bg-black.pointer-events-none {
     display: none;
 }
 

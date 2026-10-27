@@ -257,6 +257,8 @@ const copy = {
         contact: 'Contact',
         themeLabel: 'Theme',
         languageLabel: 'Language',
+        navOpen: 'Open menu',
+        navClose: 'Close menu',
         light: 'Village',
         dark: 'Dungeon',
         system: 'System',
@@ -333,6 +335,8 @@ const copy = {
         contact: 'Kontak',
         themeLabel: 'Tema',
         languageLabel: 'Bahasa',
+        navOpen: 'Buka menu',
+        navClose: 'Tutup menu',
         light: 'Desa',
         dark: 'Dungeon',
         system: 'Sistem',
@@ -409,6 +413,8 @@ const copy = {
         contact: '連絡',
         themeLabel: 'テーマ',
         languageLabel: '言語',
+        navOpen: 'メニューを開く',
+        navClose: 'メニューを閉じる',
         light: '村',
         dark: 'ダンジョン',
         system: 'システム',
@@ -1184,9 +1190,13 @@ export default function Welcome() {
 
                         <motion.button
                             type="button"
-                            className="pixel-corners-sm flex size-11 items-center justify-center rounded-md border border-slate-300/80 bg-white/80 text-slate-900 xl:hidden dark:border-white/10 dark:text-white"
+                            className={`pixel-corners-sm flex size-11 items-center justify-center rounded-md border transition-colors duration-200 xl:hidden ${
+                                menuOpen
+                                    ? 'border-slate-900 bg-slate-900 text-white dark:border-white dark:bg-white dark:text-slate-900'
+                                    : 'border-slate-300/80 bg-white/80 text-slate-900 hover:bg-white dark:border-white/10 dark:bg-white/5 dark:text-white dark:hover:bg-white/10'
+                            }`}
                             onClick={() => setMenuOpen((open) => !open)}
-                            aria-label="Toggle navigation"
+                            aria-label={menuOpen ? text.navClose : text.navOpen}
                             aria-expanded={menuOpen}
                             aria-controls="mobile-navigation"
                             whileTap={{ scale: 0.9 }}
@@ -1196,9 +1206,13 @@ export default function Welcome() {
                                 damping: 28,
                             }}
                         >
-                            <span className="relative block size-5">
+                            <span
+                                aria-hidden="true"
+                                className="relative block size-5"
+                            >
                                 <motion.span
                                     className="absolute left-0 block h-0.5 w-5 rounded-full bg-current"
+                                    initial={false}
                                     animate={
                                         menuOpen
                                             ? { top: 9, rotate: 45 }
@@ -1215,7 +1229,8 @@ export default function Welcome() {
                                     }
                                 />
                                 <motion.span
-                                    className="absolute top-9 left-0 block h-0.5 w-5 rounded-full bg-current"
+                                    className="absolute top-[9px] left-0 block h-0.5 w-5 origin-center rounded-full bg-current"
+                                    initial={false}
                                     animate={
                                         menuOpen
                                             ? { opacity: 0, scaleX: 0.2 }
@@ -1233,6 +1248,7 @@ export default function Welcome() {
                                 />
                                 <motion.span
                                     className="absolute left-0 block h-0.5 w-5 rounded-full bg-current"
+                                    initial={false}
                                     animate={
                                         menuOpen
                                             ? { top: 9, rotate: -45 }
