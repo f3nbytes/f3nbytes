@@ -873,8 +873,10 @@ export default function Game() {
             onPhase: (p) => {
                 setPhase(p);
 
-                if (p === 'title') {
+                if (p === 'title' || p === 'victory' || p === 'defeat') {
+                    // Jangan biarkan peta besar / tas menutupi layar akhir.
                     setMapBig(false);
+                    setInvOpen(false);
                 }
 
                 if (p === 'roam') {
@@ -1036,13 +1038,17 @@ export default function Game() {
                 return;
             }
 
-            pressedRef.current.add(e.code);
-
-            if (e.code === 'KeyM') {
-                game.toggleMinimap();
-
+            // Layar akhir cuma butuh Space/Enter untuk epilog.
+            if (
+                (phaseRef.current === 'victory' ||
+                    phaseRef.current === 'defeat') &&
+                e.code !== 'Space' &&
+                e.code !== 'Enter'
+            ) {
                 return;
             }
+
+            pressedRef.current.add(e.code);
 
             if (
                 dialogRef.current &&
@@ -1059,6 +1065,12 @@ export default function Game() {
             }
 
             if (dialogRef.current) {
+                return;
+            }
+
+            if (e.code === 'KeyM') {
+                game.toggleMinimap();
+
                 return;
             }
 
@@ -1921,6 +1933,7 @@ export default function Game() {
 
     const current = dialog?.lines[0] ?? null;
     const typedText = useTypewriter(current?.text ?? '', dialog !== null);
+    const endPhase = phase === 'victory' || phase === 'defeat';
     const [waveBanner, setWaveBanner] = useState(0);
     const lastWave = useRef(0);
     const [muted, setMuted] = useState(sound.isMuted());
@@ -1930,6 +1943,9 @@ export default function Game() {
     const [mapBig, setMapBig] = useState(false);
     const [partyOpen, setPartyOpen] = useState(!isTouch);
     const [controlsOpen, setControlsOpen] = useState(!isTouch);
+    const showBag = invOpen && hud !== null && phase !== 'title' && !endPhase;
+    const showHudPanel =
+        hud !== null && phase !== 'title' && !endPhase && showHud;
     const [shakeOn, setShakeOn] = useState(() => {
         try {
             return localStorage.getItem('f3n-shake') !== '0';
@@ -2054,6 +2070,10 @@ export default function Game() {
         const wrap = wrapRef.current;
 
         if (!game || !wrap) {
+            return;
+        }
+
+        if (phaseRef.current === 'victory' || phaseRef.current === 'defeat') {
             return;
         }
 
@@ -2277,53 +2297,59 @@ export default function Game() {
                                     <Volume2 className="size-4 text-cyan-300" />
                                 )}
                             </button>
-                            <button
-                                type="button"
-                                onClick={() => setShowHud((v) => !v)}
-                                aria-label={
-                                    showHud ? 'Sembunyikan UI' : 'Tampilkan UI'
-                                }
-                                title={
-                                    showHud
-                                        ? 'Sembunyikan UI (o)'
-                                        : 'Tampilkan UI (o)'
-                                }
-                                className={`absolute top-3 z-30 flex items-center justify-center rounded-lg border border-cyan-400/30 bg-slate-950/70 text-slate-200 backdrop-blur-md transition-all duration-200 hover:border-cyan-300 hover:bg-cyan-500/20 hover:text-white hover:shadow-[0_0_12px_rgba(34,211,238,0.4)] ${isTouch ? 'right-[3.9rem] size-11' : 'right-14 size-9'}`}
-                            >
-                                {showHud ? (
-                                    <EyeOff className="size-4 text-slate-400" />
-                                ) : (
-                                    <Eye className="size-4 text-cyan-300" />
-                                )}
-                            </button>
-                            <button
-                                type="button"
-                                onClick={() => setInvOpen((v) => !v)}
-                                aria-label="Tas item"
-                                title="Tas item (B)"
-                                className={`absolute top-3 z-30 flex items-center justify-center rounded-lg border bg-slate-950/70 backdrop-blur-md transition-all duration-200 hover:border-cyan-300 hover:bg-cyan-500/20 hover:text-white ${
-                                    invOpen
-                                        ? 'border-cyan-300 text-cyan-300'
-                                        : 'border-cyan-400/30 text-slate-200'
-                                } ${isTouch ? 'right-[7.05rem] size-11' : 'right-[5.5rem] size-9'}`}
-                            >
-                                <Package className="size-4" />
-                            </button>
-                            <button
-                                type="button"
-                                onClick={() => {
-                                    sound.click();
-                                    setInvOpen(false);
-                                    setPaused(true);
-                                }}
-                                aria-label="Jeda"
-                                title="Jeda (Esc)"
-                                className={`absolute top-3 z-30 flex items-center justify-center rounded-lg border border-cyan-400/30 bg-slate-950/70 text-slate-200 backdrop-blur-md transition-all duration-200 hover:border-cyan-300 hover:bg-cyan-500/20 hover:text-white hover:shadow-[0_0_12px_rgba(34,211,238,0.4)] ${isTouch ? 'right-[10.4rem] size-11' : 'right-[8.25rem] size-9'}`}
-                            >
-                                <Pause className="size-4" />
-                            </button>
+                            {!endPhase && (
+                                <>
+                                    <button
+                                        type="button"
+                                        onClick={() => setShowHud((v) => !v)}
+                                        aria-label={
+                                            showHud
+                                                ? 'Sembunyikan UI'
+                                                : 'Tampilkan UI'
+                                        }
+                                        title={
+                                            showHud
+                                                ? 'Sembunyikan UI (o)'
+                                                : 'Tampilkan UI (o)'
+                                        }
+                                        className={`absolute top-3 z-30 flex items-center justify-center rounded-lg border border-cyan-400/30 bg-slate-950/70 text-slate-200 backdrop-blur-md transition-all duration-200 hover:border-cyan-300 hover:bg-cyan-500/20 hover:text-white hover:shadow-[0_0_12px_rgba(34,211,238,0.4)] ${isTouch ? 'right-[3.9rem] size-11' : 'right-14 size-9'}`}
+                                    >
+                                        {showHud ? (
+                                            <EyeOff className="size-4 text-slate-400" />
+                                        ) : (
+                                            <Eye className="size-4 text-cyan-300" />
+                                        )}
+                                    </button>
+                                    <button
+                                        type="button"
+                                        onClick={() => setInvOpen((v) => !v)}
+                                        aria-label="Tas item"
+                                        title="Tas item (B)"
+                                        className={`absolute top-3 z-30 flex items-center justify-center rounded-lg border bg-slate-950/70 backdrop-blur-md transition-all duration-200 hover:border-cyan-300 hover:bg-cyan-500/20 hover:text-white ${
+                                            invOpen
+                                                ? 'border-cyan-300 text-cyan-300'
+                                                : 'border-cyan-400/30 text-slate-200'
+                                        } ${isTouch ? 'right-[7.05rem] size-11' : 'right-[5.5rem] size-9'}`}
+                                    >
+                                        <Package className="size-4" />
+                                    </button>
+                                    <button
+                                        type="button"
+                                        onClick={() => {
+                                            sound.click();
+                                            setInvOpen(false);
+                                            setPaused(true);
+                                        }}
+                                        aria-label="Jeda"
+                                        title="Jeda (Esc)"
+                                        className={`absolute top-3 z-30 flex items-center justify-center rounded-lg border border-cyan-400/30 bg-slate-950/70 text-slate-200 backdrop-blur-md transition-all duration-200 hover:border-cyan-300 hover:bg-cyan-500/20 hover:text-white hover:shadow-[0_0_12px_rgba(34,211,238,0.4)] ${isTouch ? 'right-[10.4rem] size-11' : 'right-[8.25rem] size-9'}`}
+                                    >
+                                        <Pause className="size-4" />
+                                    </button>
+                                </>
+                            )}
 
-                            {invOpen && hud && phase !== 'title' && (
+                            {showBag && (
                                 <div className="absolute top-16 right-3 z-30 w-full max-w-xs rounded-xl border border-cyan-400/25 bg-slate-950/90 p-3 text-slate-100 shadow-[0_8px_32px_rgba(0,0,0,0.6)] backdrop-blur-md">
                                     <div className="mb-2 flex items-center justify-between">
                                         <span className="font-pixel text-[10px] tracking-wider text-cyan-300">
@@ -2442,7 +2468,7 @@ export default function Game() {
                                 </div>
                             )}
 
-                            {hud && phase !== 'title' && showHud && (
+                            {showHudPanel && (
                                 <div
                                     className="[container-type:size] pointer-events-none absolute z-10"
                                     style={{
@@ -2478,7 +2504,9 @@ export default function Game() {
                                             </div>
                                             <div
                                                 className="mt-[0.2cqw] flex items-center gap-[0.3cqw] font-mono text-cyan-200"
-                                                style={{ fontSize: '1.1cqw' }}
+                                                style={{
+                                                    fontSize: '1.1cqw',
+                                                }}
                                             >
                                                 <Compass className="size-[1.1cqw] shrink-0 text-cyan-400" />
                                                 <span className="max-w-[10cqw] truncate font-bold text-slate-300 uppercase">
@@ -2502,7 +2530,9 @@ export default function Game() {
                                             </div>
                                             <div
                                                 className="mt-[0.3cqw] flex items-center gap-[0.4cqw] font-mono font-black text-white"
-                                                style={{ fontSize: '1.8cqw' }}
+                                                style={{
+                                                    fontSize: '1.8cqw',
+                                                }}
                                             >
                                                 <Trophy className="size-[1.3cqw] text-amber-400" />
                                                 <span>
@@ -4186,9 +4216,11 @@ export default function Game() {
                                                             '0 0 12px rgba(251,191,36,0.5)',
                                                     }}
                                                 >
-                                                    {waveBanner >= 3
+                                                    {waveBanner >= 6
                                                         ? '⚔ FINAL — RAJA DEADLINE ⚔'
-                                                        : `WAVE ${waveBanner} MULAI!`}
+                                                        : waveBanner >= 5
+                                                          ? '⚡ WAVE ELITE ⚡'
+                                                          : `WAVE ${waveBanner} MULAI!`}
                                                 </span>
                                                 <Flame className="size-5 text-orange-400" />
                                             </div>
@@ -4258,7 +4290,7 @@ export default function Game() {
                                     >
                                         <Trophy className="size-16 text-amber-300 drop-shadow-[0_0_20px_rgba(251,191,36,0.5)]" />
                                     </motion.div>
-                                    <div className="relative">
+                                    <div className="relative rounded-2xl border border-amber-300/25 bg-slate-950/60 px-5 py-4 backdrop-blur-sm sm:px-8">
                                         <div
                                             className="font-pixel text-xl text-amber-300"
                                             style={{
@@ -4268,16 +4300,27 @@ export default function Game() {
                                         >
                                             KEMENANGAN!
                                         </div>
-                                        <div className="mt-2 flex items-center justify-center gap-2 font-mono text-lg">
-                                            <Sparkles className="size-4 text-amber-400" />
-                                            <span className="text-amber-200">
+                                        <div className="mt-2 flex flex-wrap items-center justify-center gap-x-4 gap-y-1 font-mono text-lg">
+                                            <span className="inline-flex items-center gap-2 text-amber-200">
+                                                <Sparkles className="size-4 text-amber-400" />
                                                 Skor:{' '}
                                                 <span className="font-black text-white">
                                                     {hud?.score ?? 0}
                                                 </span>
                                             </span>
-                                            <Sparkles className="size-4 text-amber-400" />
+                                            <span className="inline-flex items-center gap-2 text-cyan-200">
+                                                <Zap className="size-4 text-cyan-300" />
+                                                Souls:{' '}
+                                                <span className="font-black text-white">
+                                                    {hud?.souls ?? 0}
+                                                </span>
+                                            </span>
                                         </div>
+                                        <p className="mx-auto mt-3 max-w-md font-mono text-xs leading-5 text-amber-100">
+                                            Tamat — 7 chapter dan Raja Deadline
+                                            sudah dilewati. Terima kasih sudah
+                                            main!
+                                        </p>
                                     </div>
                                     {netActive ? (
                                         <motion.button
@@ -4372,11 +4415,15 @@ export default function Game() {
                                             PARTY TUMBANG...
                                         </div>
                                         <p className="mt-2 text-sm text-slate-300">
-                                            Skor{' '}
+                                            Bertahan sampai wave{' '}
+                                            <span className="font-black text-white">
+                                                {hud?.wave ?? 1}
+                                            </span>
+                                            /6 — skor{' '}
                                             <span className="font-black text-white">
                                                 {hud?.score ?? 0}
-                                            </span>{' '}
-                                            — coba lagi, atur dodge-nya!
+                                            </span>
+                                            . Atur dodge-nya, lalu coba lagi!
                                         </p>
                                     </div>
                                     {netActive ? (
@@ -4416,14 +4463,14 @@ export default function Game() {
                     </div>
                     {/* Petunjuk kontekstual sekali per pemain */}
                     <AnimatePresence>
-                        {tip && phase !== 'title' && !paused && (
+                        {tip && !endPhase && phase !== 'title' && !paused && (
                             <motion.div
                                 key="game-tip"
                                 initial={{ opacity: 0, y: -8, scale: 0.98 }}
                                 animate={{ opacity: 1, y: 0, scale: 1 }}
                                 exit={{ opacity: 0, y: -6, scale: 0.99 }}
                                 transition={{ duration: 0.22, ease: 'easeOut' }}
-                                className="fixed top-[4.6rem] left-1/2 z-40 flex w-[min(92vw,30rem)] -translate-x-1/2 items-start gap-2 rounded-lg border border-cyan-400/35 bg-slate-950/92 px-3 py-2 text-cyan-100 shadow-[0_10px_30px_rgba(0,0,0,0.55)] backdrop-blur-md"
+                                className={`fixed left-1/2 z-40 flex w-[min(92vw,30rem)] -translate-x-1/2 items-start gap-2 rounded-lg border border-cyan-400/35 bg-slate-950/92 px-3 py-2 text-cyan-100 shadow-[0_10px_30px_rgba(0,0,0,0.55)] backdrop-blur-md ${waveBanner > 0 ? 'top-[8.4rem]' : 'top-[4.6rem]'}`}
                             >
                                 <Sparkles className="mt-0.5 size-3.5 shrink-0 text-cyan-300" />
                                 <p className="flex-1 font-mono text-[11px] leading-4">

@@ -1346,6 +1346,11 @@ export class PixelStoryGame {
         this.waveIndex = -1;
         this.storyIndex = 0;
         this.mapView = 1;
+        this.guruGiven = false;
+        this.storyFromRoam = false;
+        this.questFlash = 0;
+        this.skipVotes.clear();
+        this.skipSeen = 0;
         this.cb.onMap?.(false);
         this.setMap('class');
         sound.startMusic();
@@ -1354,7 +1359,11 @@ export class PixelStoryGame {
 
     /** Lanjut dialog berikutnya. Dipanggil tombol LANJUT. */
     advanceDialogue(): void {
-        if (this.phase !== 'story' || this.netRole === 'client') {
+        // Fase victory juga punya dialog (epilog), jadi harus bisa dilanjut.
+        if (
+            (this.phase !== 'story' && this.phase !== 'victory') ||
+            this.netRole === 'client'
+        ) {
             return;
         }
 
@@ -1364,7 +1373,13 @@ export class PixelStoryGame {
         if (this.storyQueue.length === 0) {
             this.skipVotes.clear();
             this.skipSeen = 0;
-            this.finishStory();
+
+            if (this.phase === 'victory') {
+                // Epilog habis: tutup dialog, overlay kemenangan yang tampil.
+                this.cb.onStory(this.storyChapter, null);
+            } else {
+                this.finishStory();
+            }
         } else {
             this.cb.onStory(this.storyChapter, [...this.storyQueue]);
         }
@@ -1382,6 +1397,9 @@ export class PixelStoryGame {
         } else if (this.storyIndex === 2) {
             // Dialog Bu Sari selesai: BARU quest dibuka.
             this.startQuests();
+        } else if (this.storyIndex === 7) {
+            // Chapter 7 (Raja Deadline bangkit) langsung ke wave boss.
+            this.startWave(5);
         } else {
             this.startWave(this.storyIndex - 3);
         }
@@ -1389,7 +1407,10 @@ export class PixelStoryGame {
 
     /** Lewati sisa dialog beat (butuh suara semua pemain di online). */
     private skipStory(): void {
-        if (this.phase !== 'story' || this.netRole === 'client') {
+        if (
+            (this.phase !== 'story' && this.phase !== 'victory') ||
+            this.netRole === 'client'
+        ) {
             return;
         }
 
@@ -1401,6 +1422,13 @@ export class PixelStoryGame {
 
         if (left > 0) {
             sound.dialog();
+        }
+
+        if (this.phase === 'victory') {
+            this.cb.onStory(this.storyChapter, null);
+            this.pushHud();
+
+            return;
         }
 
         this.finishStory();
@@ -1847,7 +1875,8 @@ export class PixelStoryGame {
             this.phase = s.ph;
             this.cb.onPhase(s.ph);
 
-            if (s.ph === 'combat') {
+            if (s.ph === 'combat' || s.ph === 'victory') {
+                this.storyQueue = [];
                 this.cb.onStory('', null);
             }
 
@@ -2144,6 +2173,33 @@ export class PixelStoryGame {
             'school',
         ];
         this.setMap(beatMaps[i] ?? 'school');
+
+        // Epilog: bawa party kembali ke halaman sekolah supaya adegan
+        // penutup tidak memakai posisi acak sisa pertarungan boss.
+        if (i === STORY.length - 1) {
+            this.enemies = [];
+            this.projs = [];
+            this.shake = 0;
+
+            const spots = [
+                { x: 292, y: 252 },
+                { x: 324, y: 244 },
+                { x: 240, y: 248 },
+                { x: 200, y: 240 },
+            ];
+
+            this.players.forEach((p, idx) => {
+                p.x = spots[idx]?.x ?? 292;
+                p.y = spots[idx]?.y ?? 240;
+                p.faceX = 0;
+                p.faceY = 1;
+                p.hp = Math.max(p.hp, Math.ceil(this.maxHpOf(p) * 0.5));
+                p.alive = true;
+            });
+            this.camX = 52;
+            this.camY = 79;
+        }
+
         this.cb.onPhase('story');
         this.cb.onStory(beat.chapter, [...this.storyQueue]);
     }
@@ -2613,6 +2669,16 @@ export class PixelStoryGame {
         return p.def.dmg + (p.weapon?.dmg ?? 0);
     }
 
+    /** Dorong HUD tiap ~0,12 dtk, termasuk saat fase cerita/menang. */
+    private tickHud(dt: number): void {
+        this.hudT += dt;
+
+        if (this.hudT > 0.12) {
+            this.hudT = 0;
+            this.pushHud();
+        }
+    }
+
     private update(dt: number): void {
         this.time += dt;
 
@@ -2623,6 +2689,9 @@ export class PixelStoryGame {
         ) {
             this.updateParticles(dt);
             this.hostBroadcast(dt, 0.5);
+            // Fase cerita/kemenangan tetap perlu HUD segar: label map,
+            // wave, dan skor jangan tertinggal dari pertarungan sebelumnya.
+            this.tickHud(dt);
 
             return;
         }
@@ -3217,10 +3286,17 @@ export class PixelStoryGame {
             this.enemies.length === 0 &&
             this.projs.length <= 12
         ) {
-            if (this.waveIndex < 5) {
+            if (this.waveIndex < 3) {
+                // Wave 0-2 → Chapter 4, 5, 6.
                 this.playStoryBeat(this.waveIndex + 3);
+            } else if (this.waveIndex === 3) {
+                // Wave elite tanpa dialog; boss butuh pemanasan.
+                this.startWave(4);
+            } else if (this.waveIndex === 4) {
+                // Chapter 7 tepat sebelum RAJA DEADLINE turun.
+                this.playStoryBeat(6);
             } else {
-                // Boss defeated — play FINAL story beat then win via advanceDialogue.
+                // Boss tumbang: epilog FINAL lalu menang.
                 this.playStoryBeat(STORY.length - 1);
             }
 
@@ -3272,12 +3348,7 @@ export class PixelStoryGame {
             }
         }
 
-        this.hudT += dt;
-
-        if (this.hudT > 0.12) {
-            this.hudT = 0;
-            this.pushHud();
-        }
+        this.tickHud(dt);
 
         // Host menyiarkan snapshot ~12,5Hz saat combat.
         this.hostBroadcast(dt, 0.08);
@@ -4961,7 +5032,11 @@ export class PixelStoryGame {
             c.textAlign = 'left';
         }
 
-        if (this.phase !== 'title') {
+        if (
+            this.phase !== 'title' &&
+            this.phase !== 'victory' &&
+            this.phase !== 'defeat'
+        ) {
             this.drawMinimap();
         }
 
