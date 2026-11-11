@@ -260,6 +260,10 @@ export interface Snapshot {
     room?: string;
     /** Nomor urut snapshot (host) untuk membuang data yang lebih lama. */
     q?: number;
+    /** Generasi host (ms) dari server: membuang snapshot host lama. */
+    ep?: number;
+    /** Indeks cerita host (untuk melanjutkan setelah host refresh). */
+    si?: number;
     ph: Phase;
     w: number;
     s: number;
@@ -500,7 +504,7 @@ interface Player {
     hitFlash: number;
     walkT: number;
     moving: boolean;
-    control: Hand | 'ai' | 'net' | 'local';
+    control: Hand | 'ai' | 'net' | 'local' | 'away';
     aiAngle: number;
     deadT: number;
     skin: number;
@@ -1206,6 +1210,21 @@ export class PixelStoryGame {
     private snapT = 0;
     private snapQ = 0;
     private lastQ = 0;
+    /**
+     * Generasi host terakhir yang snapshot-nya diterima. Host baru memakai
+     * epoch lebih besar; snapshot host lama yang masih nyasar (in-flight)
+     * dibuang supaya nomor urut dua host tidak saling menimpa.
+     */
+    private snapEp = 0;
+    /**
+     * Snapshot BARU terakhir (nomor urut maju). Klien memakai ini untuk
+     * berhenti memprediksi saat host berhenti mengirim: tanpa itu hero lokal
+     * jalan terus lalu ditarik balik ke posisi host yang basi (terlihat
+     * "kembali ke posisi awal"). Cadangan HTTP bisa terus mengirim snapshot
+     * lama yang sama, jadi snapshot apa pun tidak cukup sebagai tanda hidup.
+     */
+    private lastFreshSnapAt = 0;
+    private static readonly SNAP_STALE_MS = 900;
     /** Ukuran minimap: 1 = mini permanen, 2 = panel besar. */
     private mapView: 1 | 2 = 1;
     private touchUi =
@@ -1770,21 +1789,31 @@ export class PixelStoryGame {
 
     switchToHost(): void {
         this.netRole = 'host';
-        this.players.forEach((p) => {
-            if (p.control === 'net' && p.alive) {
-                p.control = 'ai';
+        // Hero yang tidak lagi punya pemain (host lama / klien lain yang
+        // belum mengirim input) berhenti di tempat. Input yang masuk akan
+        // mengubahnya kembali menjadi 'net'.
+        this.players.forEach((p, i) => {
+            if (i !== this.localHero && p.alive) {
+                p.control = 'away';
+                p.rx = 0;
+                p.ry = 0;
             }
         });
         this.pushHud();
     }
 
-    setHeroAI(hero: number): void {
+    /** Host: hero tanpa pemain berhenti di tempat (tidak menjelajah sendiri). */
+    setHeroAway(hero: number): void {
         const p = this.players[hero];
 
-        if (p && p.control === 'net') {
-            p.control = 'ai';
-            this.pushHud();
+        if (!p || p.control === 'local') {
+            return;
         }
+
+        p.control = 'away';
+        p.rx = 0;
+        p.ry = 0;
+        p.moving = false;
     }
 
     setSkin(hero: number, skin: number): void {
@@ -1800,12 +1829,21 @@ export class PixelStoryGame {
         this.pushHud();
     }
 
+    /** Klien: true bila snapshot host sudah lama tidak maju. */
+    isSnapStale(): boolean {
+        return (
+            performance.now() - this.lastFreshSnapAt >
+            PixelStoryGame.SNAP_STALE_MS
+        );
+    }
+
     getSnapshot(): Snapshot {
         this.snapQ += 1;
 
         return {
             v: 1,
             q: this.snapQ,
+            si: this.storyIndex,
             ph: this.phase,
             w: this.waveIndex,
             s: this.score,
@@ -1858,6 +1896,23 @@ export class PixelStoryGame {
             return;
         }
 
+        // Tanda host masih hidup: dipakai smoothRemote untuk memutuskan
+        // apakah prediksi lokal masih boleh jalan.
+        const now = performance.now();
+
+        if (s.ep !== undefined) {
+            // Snapshot dari host yang lebih lama: abaikan. Host baru selalu
+            // punya epoch lebih besar (server yang menandai).
+            if (this.snapEp !== 0 && s.ep < this.snapEp) {
+                return;
+            }
+
+            if (s.ep !== this.snapEp) {
+                this.snapEp = s.ep;
+                this.lastQ = 0;
+            }
+        }
+
         if (s.q !== undefined) {
             // Host hasil migrasi memulai nomor urut dari 1.
             if (s.q <= 1) {
@@ -1869,6 +1924,14 @@ export class PixelStoryGame {
             }
 
             this.lastQ = s.q;
+        }
+
+        // Sampai di sini snapshot benar-benar baru (nomor urut maju).
+        this.lastFreshSnapAt = now;
+
+        // Kemajuan cerita (dipakai saat host melanjutkan setelah refresh).
+        if (s.si !== undefined) {
+            this.storyIndex = s.si;
         }
 
         if (s.ph !== this.phase) {
@@ -2688,7 +2751,9 @@ export class PixelStoryGame {
             this.phase !== 'roam'
         ) {
             this.updateParticles(dt);
-            this.hostBroadcast(dt, 0.5);
+            // Snapshot juga membawa input klien (lihat flushSnap); 0,2 dtk
+            // supaya aksi seperti lanjut dialog tidak terasa lambat.
+            this.hostBroadcast(dt, 0.2);
             // Fase cerita/kemenangan tetap perlu HUD segar: label map,
             // wave, dan skor jangan tertinggal dari pertarungan sebelumnya.
             this.tickHud(dt);
@@ -2730,6 +2795,7 @@ export class PixelStoryGame {
             }
 
             this.shake = Math.max(0, this.shake - dt * 30);
+            this.tickHallWipe(dt);
 
             return;
         }
@@ -2793,7 +2859,7 @@ export class PixelStoryGame {
             if (p.control === 'local') {
                 mx = p.rx;
                 my = p.ry;
-            } else if (p.control === 'net') {
+            } else if (p.control === 'net' || p.control === 'away') {
                 mx = p.rx;
                 my = p.ry;
             } else {
@@ -2992,29 +3058,7 @@ export class PixelStoryGame {
 
             this.roamCd = Math.max(0, this.roamCd - dt);
 
-            // Tirai tangga menghitung WAKTU MAJU; teleport terjadi pas
-            // layar tertutup penuh (gelap), lalu tirai lanjut menyapu keluar.
-            if (this.hallWipeT > 0) {
-                this.hallWipeT = this.hallWipeT + dt;
-
-                if (
-                    this.stairTele === 1 &&
-                    this.stairDoor !== null &&
-                    this.hallWipeT >= 1.5
-                ) {
-                    const door = this.stairDoor;
-
-                    this.stairTele = 0;
-                    this.stairDoor = null;
-                    this.stairFreeze = 0.12;
-                    this.moveToRoamDoor(door, true);
-                }
-
-                if (this.hallWipeT >= this.hallWipeDur) {
-                    this.hallWipeT = 0;
-                    this.hallWipeLabel = '';
-                }
-            }
+            this.tickHallWipe(dt);
 
             this.stairFreeze = Math.max(0, this.stairFreeze - dt);
 
@@ -3369,32 +3413,75 @@ export class PixelStoryGame {
     }
 
     /**
+     * Tirai pindah lantai: waktu maju terus sampai durasi habis, lalu label
+     * dibersihkan. Dipakai host maupun klien — kalau klien tidak ikut
+     * menghitung, label "LANTAI n" tergantung terus di layar tamu.
+     * Teleport di tengah tirai hanya terjadi di host.
+     */
+    private tickHallWipe(dt: number): void {
+        if (this.hallWipeT <= 0) {
+            return;
+        }
+
+        this.hallWipeT = this.hallWipeT + dt;
+
+        // Teleport terjadi pas layar tertutup penuh (gelap), lalu tirai
+        // lanjut menyapu keluar.
+        if (
+            this.stairTele === 1 &&
+            this.stairDoor !== null &&
+            this.hallWipeT >= 1.5
+        ) {
+            const door = this.stairDoor;
+
+            this.stairTele = 0;
+            this.stairDoor = null;
+            this.stairFreeze = 0.12;
+            this.moveToRoamDoor(door, true);
+        }
+
+        if (this.hallWipeT >= this.hallWipeDur) {
+            this.hallWipeT = 0;
+            this.hallWipeLabel = '';
+        }
+    }
+
+    /**
      * Klien: haluskan posisi dari snapshot host (12-20 Hz) agar gerak
      * tidak patah-patah di layar.
      */
     private smoothRemote(dt: number): void {
         const k = Math.min(1, dt * 16);
+        // Host berhenti mengirim (tab-nya di latar / pause / jaringan putus):
+        // jangan terus memprediksi gerak sendiri, karena posisi otoritatif
+        // tidak ikut maju dan hero akan ditarik balik ke titik terakhir.
+        const stale =
+            performance.now() - this.lastFreshSnapAt >
+            PixelStoryGame.SNAP_STALE_MS;
 
         for (const p of this.players) {
             if (p === this.players[this.localHero] && p.alive) {
-                // Prediksi lokal: hero sendiri bergerak seketika, lalu
-                // dikoreksi halus ke posisi otoritatif dari host.
                 const len = Math.hypot(p.rx, p.ry);
 
-                if (len > 0) {
-                    p.x += (p.rx / len) * p.def.speed * dt;
-                    p.y += (p.ry / len) * p.def.speed * dt;
-                    p.faceX = p.rx / len;
-                    p.faceY = p.ry / len;
-                    p.walkT += dt * 10;
+                if (!stale) {
+                    // Prediksi lokal: hero sendiri bergerak seketika, lalu
+                    // dikoreksi halus ke posisi otoritatif dari host.
+                    if (len > 0) {
+                        p.x += (p.rx / len) * p.def.speed * dt;
+                        p.y += (p.ry / len) * p.def.speed * dt;
+                        p.faceX = p.rx / len;
+                        p.faceY = p.ry / len;
+                        p.walkT += dt * 10;
+                    }
+
+                    const corr = Math.min(1, dt * 2.5);
+                    p.x += (p.sx - p.x) * corr;
+                    p.y += (p.sy - p.y) * corr;
                 }
 
-                const corr = Math.min(1, dt * 2.5);
-                p.x += (p.sx - p.x) * corr;
-                p.y += (p.sy - p.y) * corr;
                 p.x = Math.max(12, Math.min(WORLD_W - 12, p.x));
                 p.y = Math.max(36, Math.min(WORLD_H - 10, p.y));
-                p.moving = len > 0;
+                p.moving = !stale && len > 0;
 
                 continue;
             }
@@ -4306,7 +4393,9 @@ export class PixelStoryGame {
                                 : 'AI'
                             : p.control === 'net'
                               ? 'ON'
-                              : 'AI',
+                              : p.control === 'away'
+                                ? 'OFF'
+                                : 'AI',
                 skillName: p.def.skill.name,
                 skillCd: Math.ceil(p.skillCD * 10) / 10,
                 skillMax: p.def.skill.cd,

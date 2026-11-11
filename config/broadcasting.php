@@ -42,7 +42,10 @@ return [
                 'useTLS' => env('REVERB_SCHEME', 'https') === 'https',
             ],
             'client_options' => [
-                // Guzzle client options: https://docs.guzzlephp.org/en/stable/request-options.html
+                // Jangan biarkan host menggantung bila Reverb lambat/macet:
+                // permainan masih punya jalur cadangan lewat HTTP.
+                'connect_timeout' => 1,
+                'timeout' => 3,
             ],
         ],
 

@@ -1,6 +1,6 @@
 import Phaser from 'phaser';
 import { useEffect, useRef } from 'react';
-import { SchoolScene } from './SchoolScene';
+import { WorldScene } from './WorldScene';
 
 /** Mount/unmount Phaser sekali per render (aman StrictMode). */
 export default function PhaserGame() {
@@ -22,11 +22,18 @@ export default function PhaserGame() {
             backgroundColor: '#437153',
             pixelArt: true,
             roundPixels: true,
+            physics: {
+                default: 'arcade',
+                arcade: {
+                    gravity: { x: 0, y: 0 },
+                    debug: false,
+                },
+            },
             scale: {
                 mode: Phaser.Scale.FIT,
                 autoCenter: Phaser.Scale.CENTER_BOTH,
             },
-            scene: [SchoolScene],
+            scene: [WorldScene],
         });
         gameRef.current = game;
 

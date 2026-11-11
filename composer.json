@@ -52,7 +52,13 @@
         ],
         "dev": [
             "Composer\\Config::disableProcessTimeout",
-            "npx concurrently -c \"#93c5fd,#c4b5fd,#fdba74\" \"php artisan serve\" \"php artisan queue:listen --tries=1\" \"npm run dev\" --names='server,queue,vite'"
+            "npx concurrently -c \"#93c5fd,#c4b5fd,#fdba74,#a7f3d0\" \"PHP_CLI_SERVER_WORKERS=8 php artisan serve --port=8001 --no-reload\" \"php artisan queue:listen --tries=1\" \"php artisan reverb:start\" \"npm run dev\" --names='server,queue,reverb,vite'"
+        ],
+        "dev:online": [
+            "Composer\\Config::disableProcessTimeout",
+            "rm -f public/hot",
+            "npm run build",
+            "npx concurrently -c \"#93c5fd,#c4b5fd,#a7f3d0\" \"PHP_CLI_SERVER_WORKERS=8 php artisan serve --port=8001 --no-reload\" \"php artisan queue:listen --tries=1\" \"php artisan reverb:start\" --names='server,queue,reverb'"
         ],
         "lint": [
             "pint --parallel"

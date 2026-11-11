@@ -237,6 +237,9 @@ log "Membersihkan cache config..."
 "$PHP_BIN" artisan config:clear >/dev/null
 
 log "Build frontend..."
+# Hapus sisa penanda Vite dev server agar Laravel memakai hasil build,
+# bukan http://[::1]:5173 yang tidak bisa diakses dari luar mesin.
+rm -f public/hot
 npm run build >/dev/null
 
 log "Menjalankan Reverb..."

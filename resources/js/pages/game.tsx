@@ -45,9 +45,11 @@ import type {
     PointerEvent as ReactPointerEvent,
     ReactNode,
 } from 'react';
-import type { RoomPlayer } from '@/game/net';
+import type { BufferedInput, RoomPlayer } from '@/game/net';
 import {
+    ApiError,
     createRoom,
+    forgetRoom,
     getEcho,
     heartbeat,
     joinRoom,
@@ -58,13 +60,17 @@ import {
     pullState,
     pushInput,
     pushState,
+    rememberRoom,
+    rememberedRoom,
     roomState,
+    setMyPlayerId,
     startRoom,
 } from '@/game/net';
 import type {
     DialogueLine,
     HudState,
     Phase,
+    RemoteInput,
     Snapshot,
 } from '@/game/pixel-story';
 import {
@@ -97,6 +103,9 @@ const SKILL_KEYS = [
     'Numpad2',
     'Numpad3',
 ];
+
+/** Input klien dianggap basi setelah 1,5 dtk tanpa kiriman (kiriman rutin 0,5 dtk). */
+const INPUT_STALE_MS = 1500;
 
 /** Analog virtual untuk gerak di layar sentuh. */
 function AnalogStick({
@@ -815,6 +824,43 @@ export default function Game() {
     // Host: kirim snapshot satu per satu (selalu yang terbaru).
     const pendingSnap = useRef<Snapshot | null>(null);
     const snapBusy = useRef(false);
+    /** true bila kirim snapshot gagal → pakai polling input cadangan. */
+    const snapFailed = useRef(false);
+    /** true saat host memulihkan state (jangan siarkan intro yang salah). */
+    const snapHold = useRef(false);
+
+    const applyRemoteInputs = useCallback((inputs: BufferedInput[]): void => {
+        const game = gameRef.current;
+        const roster = netRef.current?.roster ?? [];
+
+        if (!game || inputs.length === 0) {
+            return;
+        }
+
+        // Satu request untuk kirim snapshot + terima input klien.
+        // Jadi host tidak perlu polling input terpisah.
+        for (const item of inputs) {
+            // Hero datang dari server. Roster lokal bisa tertinggal beberapa
+            // detik; memakai roster untuk memetakan input pernah membuat
+            // input satu pemain menggerakkan hero pemain lain.
+            const hero = item.hero ?? roster.find((p) => p.id === item.id)?.hero;
+
+            if (hero === undefined) {
+                continue;
+            }
+
+            // Klien berhenti mengirim (tab ditutup / jaringan putus)
+            // → jangan teruskan arah terakhir.
+            game.setRemoteInput(
+                hero,
+                (item.age ?? 0) > INPUT_STALE_MS
+                    ? { ...item.input, x: 0, y: 0 }
+                    : item.input,
+            );
+        }
+
+        game.setSkipTotal(roster.length);
+    }, []);
 
     const flushSnap = useCallback((): void => {
         const n = netRef.current;
@@ -831,14 +877,23 @@ export default function Game() {
 
         pendingSnap.current = null;
         snapBusy.current = true;
-        void pushState(n.code, myPlayerId(), snap).finally(() => {
-            snapBusy.current = false;
 
-            if (pendingSnap.current) {
-                flushSnap();
-            }
-        });
-    }, []);
+        void pushState(n.code, myPlayerId(), snap)
+            .then((inputs) => {
+                snapFailed.current = false;
+                applyRemoteInputs(inputs);
+            })
+            .catch(() => {
+                snapFailed.current = true;
+            })
+            .finally(() => {
+                snapBusy.current = false;
+
+                if (pendingSnap.current) {
+                    flushSnap();
+                }
+            });
+    }, [applyRemoteInputs]);
 
     const netActive = online !== null;
 
@@ -901,6 +956,12 @@ export default function Game() {
                 const n = netRef.current;
 
                 if (n && n.role === 'host') {
+                    // Sedang memulihkan state setelah refresh: jangan
+                    // siarkan intro/posisi awal ke klien.
+                    if (snapHold.current) {
+                        return;
+                    }
+
                     // Single-flight: kalau jaringan lambat, jangan menumpuk
                     // request. Simpan snapshot terbaru dan kirim setelah
                     // request sebelumnya selesai.
@@ -1262,19 +1323,7 @@ export default function Game() {
             }
 
             busy = true;
-            void pushInput(code, pid, {
-                x: axisRef.current.x,
-                y: axisRef.current.y,
-                atk: edgeRef.current.atk,
-                dge: edgeRef.current.dge,
-                skl: edgeRef.current.skl,
-                jmp: edgeRef.current.jmp,
-                skp: edgeRef.current.skp,
-                dlg: edgeRef.current.dlg,
-                itr: edgeRef.current.itr,
-                ax: aimRef.current.x,
-                ay: aimRef.current.y,
-            }).finally(() => {
+            void pushInput(code, pid, payload()).finally(() => {
                 busy = false;
 
                 if (queued) {
@@ -1284,13 +1333,45 @@ export default function Game() {
             });
         };
 
+        const payload = (): RemoteInput => ({
+            x: axisRef.current.x,
+            y: axisRef.current.y,
+            atk: edgeRef.current.atk,
+            dge: edgeRef.current.dge,
+            skl: edgeRef.current.skl,
+            jmp: edgeRef.current.jmp,
+            skp: edgeRef.current.skp,
+            dlg: edgeRef.current.dlg,
+            itr: edgeRef.current.itr,
+            ax: aimRef.current.x,
+            ay: aimRef.current.y,
+        });
+
+        // Tab ditutup / app pindah ke belakang: kirim "diam" segera supaya
+        // host tidak meneruskan arah terakhir (hero jalan sendiri).
+        const release = (): void => {
+            axisRef.current = { x: 0, y: 0 };
+            gameRef.current?.setLocalAxis(0, 0);
+            void pushInput(code, pid, payload(), { keepalive: true });
+        };
+
+        const onHide = (): void => {
+            if (document.visibilityState === 'hidden') {
+                release();
+            }
+        };
+
         sendRef.current = send;
 
         const id = window.setInterval(send, 500);
+        document.addEventListener('visibilitychange', onHide);
+        window.addEventListener('pagehide', release);
         send();
 
         return () => {
             window.clearInterval(id);
+            document.removeEventListener('visibilitychange', onHide);
+            window.removeEventListener('pagehide', release);
             sendRef.current = null;
         };
     }, [online]);
@@ -1298,7 +1379,10 @@ export default function Game() {
     // Indikator sinkronisasi untuk klien online.
     useEffect(() => {
         const id = window.setInterval(() => {
-            setLive(Date.now() - lastSnapRef.current < 1500);
+            setLive(
+                Date.now() - lastSnapRef.current < 1500 &&
+                    !gameRef.current?.isSnapStale(),
+            );
         }, 700);
 
         return () => window.clearInterval(id);
@@ -1333,6 +1417,7 @@ export default function Game() {
                 const { snapshot } = await pullState(code, pid);
 
                 if (snapshot) {
+                    lastSnapRef.current = Date.now();
                     gameRef.current?.applySnapshot(snapshot);
                 }
             } catch {
@@ -1345,7 +1430,8 @@ export default function Game() {
         return () => window.clearInterval(id);
     }, [online]);
 
-    // Host: tarik input remote + aksi lokal langsung.
+    // Host: cadangan tarik input bila kirim snapshot gagal terus.
+    // Interval ini tidak mengirim apa pun selama snapshot normal.
     useEffect(() => {
         if (!online || online.role !== 'host') {
             return;
@@ -1353,40 +1439,27 @@ export default function Game() {
 
         const code = online.code;
         const pid = myPlayerId();
+        let busy = false;
 
-        let pullBusy = false;
-
-        const pull = window.setInterval(async () => {
-            const n = netRef.current;
-            const game = gameRef.current;
-
-            if (!n || n.role !== 'host' || !game || pullBusy) {
+        const id = window.setInterval(async () => {
+            if (!snapFailed.current || busy || !playingRef.current) {
                 return;
             }
 
-            pullBusy = true;
+            busy = true;
 
             try {
                 const { inputs } = await pullInputs(code, pid);
-
-                for (const item of inputs) {
-                    const hero = n.roster.find((p) => p.id === item.id)?.hero;
-
-                    if (hero !== undefined) {
-                        game.setRemoteInput(hero, item.input);
-                    }
-                }
-
-                game.setSkipTotal(n.roster.length);
+                applyRemoteInputs(inputs);
             } catch {
-                // abaikan, coba lagi interval berikut
+                // coba lagi tick berikutnya
             } finally {
-                pullBusy = false;
+                busy = false;
             }
-        }, 45);
+        }, 300);
 
-        return () => window.clearInterval(pull);
-    }, [online]);
+        return () => window.clearInterval(id);
+    }, [online, applyRemoteInputs]);
 
     // Host: aksi lokal langsung (tanpa whisper).
     const lastLocal = useRef({
@@ -1501,22 +1574,50 @@ export default function Game() {
                     );
                 }
 
-                // Hero yang pemainnya hilang jadi AI.
+                // Host lama kembali setelah host baru terpilih: turun jadi
+                // client supaya tidak ada dua host yang saling menimpa.
+                if (
+                    st.hostId !== myId &&
+                    n.role === 'host' &&
+                    st.status === 'playing'
+                ) {
+                    const mine = st.players.find((p) => p.id === myId);
+                    gameRef.current?.setNetMode(
+                        'client',
+                        mine?.hero ?? n.myHero,
+                    );
+                    setOnline((prev) =>
+                        prev ? { ...prev, role: 'client' } : prev,
+                    );
+                }
+
+                // Hero yang pemainnya hilang berhenti di tempat.
                 if (n.role === 'host') {
                     for (let h = 0; h < 4; h++) {
                         if (!st.players.some((p) => p.hero === h)) {
-                            gameRef.current?.setHeroAI(h);
+                            gameRef.current?.setHeroAway(h);
                         }
                     }
                 }
 
                 await heartbeat(n.code, myId);
                 fails = 0;
-            } catch {
+            } catch (err) {
+                // Room sudah dihapus (host keluar / TTL habis): tidak ada
+                // gunanya menunggu 30 dtk. Langsung kembali ke lobby.
+                if (err instanceof ApiError && err.status === 404) {
+                    backToLobby('Room sudah bubar.');
+
+                    return;
+                }
+
                 fails += 1;
 
-                // Jaringan bisa hiccup sesaat; baru keluar setelah 3x gagal.
-                if (fails >= 3) {
+                // Ganti jaringan (Wi-Fi → seluler) bisa memutus 10-20 dtk.
+                // Saat bermain jangan langsung keluar: permainan sudah punya
+                // jalur cadangan + pergantian host. Baru menyerah setelah
+                // 30 dtk benar-benar tidak ada kabar.
+                if (fails >= (playingRef.current ? 12 : 3)) {
                     setOnline((prev) => {
                         if (prev && prev.status === 'playing') {
                             backToLobby('Room bubar / tidak terjangkau.');
@@ -1577,11 +1678,32 @@ export default function Game() {
             return;
         }
 
+        // Jangan menebak hero untuk client. Kalau roster belum memuat kita,
+        // hero cadangan bisa milik pemain lain: layar kita lalu ikut
+        // menggerakkan hero orang lain (terlihat "jalan sendiri"). Tunggu
+        // state room berikutnya (poll 2,5 dtk) sampai id kita tercatat.
+        if (role === 'client' && !roster.some((p) => p.id === myPlayerId())) {
+            return;
+        }
+
+        // Sisa snapshot dari room sebelumnya tidak boleh terkirim ke room ini.
+        pendingSnap.current = null;
+        snapFailed.current = false;
+
         playingRef.current = true;
         // beginAdventure me-reset party (control/axis/netRole),
         // jadi setNetMode harus sesudahnya agar hero lokal dapat control 'local'.
         game.beginAdventure();
         game.setNetMode(role, heroIdx);
+
+        // Semua hero non-lokal dimulai sebagai 'away' (diam di tempat).
+        // Hero milik pemain remote akan berubah ke 'net' saat input
+        // pertama tiba via setRemoteInput; hero tanpa pemain tetap 'away'.
+        for (let h = 0; h < 4; h++) {
+            if (h !== heroIdx) {
+                game.setHeroAway(h);
+            }
+        }
 
         for (const r of roster) {
             game.setSkin(r.hero, r.skin ?? 0);
@@ -1634,7 +1756,8 @@ export default function Game() {
 
         try {
             const res = await createRoom(name);
-            localStorage.setItem('f3n-player-id', res.playerId);
+            setMyPlayerId(res.playerId);
+            rememberRoom(res.code, name);
             const roster = [{ id: res.playerId, name, hero: 0, skin: 0 }];
             setOnline({
                 code: res.code,
@@ -1654,6 +1777,107 @@ export default function Game() {
         }
     };
 
+    /**
+     * Masuk / masuk lagi ke room. `resume` dipakai saat halaman dimuat ulang
+     * (tab dibunuh browser, HP restart): jangan tampilkan error, cukup diam
+     * di layar judul bila room sudah tidak ada.
+     */
+    async function enterRoom(
+        code: string,
+        name: string,
+        resume = false,
+    ): Promise<void> {
+        const pid = myPlayerId();
+
+        if (!resume) {
+            setLobbyError('');
+            setLobbyBusy(true);
+        }
+
+        try {
+            const res = await joinRoom(code, name, pid);
+
+            // Sudah jadi anggota: ingat room walau langkah berikutnya gagal
+            // (jaringan putus sesaat), supaya refresh tetap bisa melanjutkan.
+            rememberRoom(code, name);
+
+            const st = await roomState(code);
+
+            const role: 'host' | 'client' = st.hostId === pid ? 'host' : 'client';
+            const me = st.players.find((p) => p.id === pid);
+            const hero = me?.hero ?? res.hero ?? heroPick;
+
+            setOnline({
+                code,
+                role,
+                myHero: hero,
+                roster: st.players,
+                hostId: st.hostId,
+                status: st.status,
+            });
+            attachChannel(code);
+
+            if (st.status === 'playing') {
+                // Host yang dimuat ulang tidak Punya state simulasi lagi.
+                // Pulihkan dari snapshot terakhir di server supaya cerita,
+                // peta, wave, dan posisi tidak kembali ke awal.
+                const resuming = resume && role === 'host';
+
+                if (resuming) {
+                    snapHold.current = true;
+                }
+
+                beginNetGame(role, hero, st.players);
+
+                try {
+                    const last = await pullState(code, pid);
+
+                    if (last.snapshot) {
+                        lastSnapRef.current = Date.now();
+                        gameRef.current?.applySnapshot(last.snapshot);
+                    }
+                } catch {
+                    // tidak ada snapshot: mulai dari state saat ini
+                } finally {
+                    snapHold.current = false;
+                }
+            }
+        } catch (err) {
+            forgetRoom();
+
+            if (!resume) {
+                setLobbyError(
+                    err instanceof Error ? err.message : 'Gagal join room.',
+                );
+            }
+        } finally {
+            if (!resume) {
+                setLobbyBusy(false);
+            }
+        }
+    }
+
+    // Muat ulang halaman / tab dibunuh browser: coba lanjut ke room terakhir
+    // tanpa perlu mengetik kode lagi.
+    const resumedRef = useRef(false);
+
+    useEffect(() => {
+        if (resumedRef.current) {
+            return;
+        }
+
+        resumedRef.current = true;
+
+        const saved = rememberedRoom();
+
+        if (!saved || !gameRef.current) {
+            return;
+        }
+
+        void enterRoom(saved.code, saved.name, true);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, []);
+
     const handleJoin = async (): Promise<void> => {
         const code = joinCode.trim().toUpperCase();
 
@@ -1665,38 +1889,8 @@ export default function Game() {
 
         const name =
             playerName.trim() || `Pemain${Math.floor(Math.random() * 99)}`;
-        const pid = myPlayerId();
-        setLobbyError('');
-        setLobbyBusy(true);
 
-        try {
-            await joinRoom(code, name, pid);
-            const st = await roomState(code);
-            setOnline({
-                code,
-                role: st.hostId === pid ? 'host' : 'client',
-                myHero: heroPick,
-                roster: st.players,
-                hostId: st.hostId,
-                status: st.status,
-            });
-            attachChannel(code);
-
-            if (st.status === 'playing') {
-                const me = st.players.find((p) => p.id === pid);
-                beginNetGame(
-                    st.hostId === pid ? 'host' : 'client',
-                    me?.hero ?? heroPick,
-                    st.players,
-                );
-            }
-        } catch (err) {
-            setLobbyError(
-                err instanceof Error ? err.message : 'Gagal join room.',
-            );
-        } finally {
-            setLobbyBusy(false);
-        }
+        await enterRoom(code, name);
     };
 
     const handleStart = async (): Promise<void> => {
@@ -1733,6 +1927,9 @@ export default function Game() {
 
         chanRef.current = null;
         playingRef.current = false;
+        pendingSnap.current = null;
+        snapFailed.current = false;
+        forgetRoom();
         setOnline(null);
         setLobbyError(msg);
         setTab('online');
@@ -2259,8 +2456,7 @@ export default function Game() {
                             >
                                 <ArrowLeft className="size-4" />
                             </Link>
-                            {online?.role === 'client' &&
-                                phase === 'combat' && (
+                            {online?.role === 'client' && (
                                     <div
                                         className={`pointer-events-none absolute top-3 left-14 z-30 flex items-center gap-1.5 rounded-lg border px-2 py-1 font-mono text-[9px] backdrop-blur-md ${
                                             live
@@ -2275,7 +2471,7 @@ export default function Game() {
                                                     : 'animate-pulse bg-amber-400'
                                             }`}
                                         />
-                                        {live ? 'SINKRON' : 'MENYUSUL'}
+                                        {live ? 'SINKRON' : 'MENUNGGU HOST'}
                                     </div>
                                 )}
                             <button
